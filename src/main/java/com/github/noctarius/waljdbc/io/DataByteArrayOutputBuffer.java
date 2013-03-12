@@ -4,17 +4,17 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataOutput;
 import java.io.IOException;
 
-public class DataByteArrayOutputStream
+public class DataByteArrayOutputBuffer
     extends ByteArrayOutputStream
     implements DataOutput
 {
 
-    DataByteArrayOutputStream()
+    DataByteArrayOutputBuffer()
     {
         super( 32 );
     }
 
-    DataByteArrayOutputStream( int size )
+    DataByteArrayOutputBuffer( int size )
     {
         super( size );
     }
@@ -114,8 +114,21 @@ public class DataByteArrayOutputStream
     public void writeUTF( String s )
         throws IOException
     {
-        // TODO Auto-generated method stub
+        byte[] stringData = s.getBytes( "UTF-8" );
+        writeShort( stringData.length );
+        write( stringData );
+    }
 
+    public int pos()
+    {
+        return count;
+    }
+
+    public void pos( int pos )
+    {
+        if ( pos > count )
+            throw new IllegalArgumentException();
+        this.count = pos;
     }
 
 }

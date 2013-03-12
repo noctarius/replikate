@@ -6,22 +6,22 @@ public class JournalException
 
     private static final long serialVersionUID = 2480300208807598045L;
 
-    JournalException()
+    public JournalException()
     {
         super();
     }
 
-    JournalException( String message, Throwable cause )
+    public JournalException( String message, Throwable cause )
     {
         super( message, cause );
     }
 
-    JournalException( String message )
+    public JournalException( String message )
     {
         super( message );
     }
 
-    JournalException( Throwable cause )
+    public JournalException( Throwable cause )
     {
         super( cause );
     }

@@ -1,13 +1,12 @@
 package com.github.noctarius.waljdbc;
 
-import java.io.DataInput;
-import java.io.DataOutput;
-
 public interface JournalEntry<V>
 {
 
-    void read( DataInput in );
+    byte[] getData();
 
-    void write( DataOutput out );
+    int getLength();
+
+    byte getType();
 
 }
