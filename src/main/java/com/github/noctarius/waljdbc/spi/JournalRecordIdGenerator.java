@@ -5,4 +5,6 @@ public interface JournalRecordIdGenerator
 
     long nextRecordId();
 
+    long lastGeneratedRecordId();
+
 }

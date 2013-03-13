@@ -1,31 +1,31 @@
-package com.github.noctarius.waljdbc.io;
+package com.github.noctarius.waljdbc.io.disk;
 
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 
 import com.github.noctarius.waljdbc.JournalEntry;
 import com.github.noctarius.waljdbc.spi.JournalEntryReader;
-import com.github.noctarius.waljdbc.spi.JournalEntryWriter;
 
 class DiskJournalRecord<V>
+    implements Comparable<DiskJournalRecord<V>>
 {
 
     private final JournalEntry<V> entry;
 
     private final long recordId;
 
-    private final int length;
-
     DiskJournalRecord( JournalEntry<V> entry, long recordId )
     {
         this.entry = entry;
         this.recordId = recordId;
-        this.length = DiskJournal.JOURNAL_RECORD_HEADER_SIZE + entry.getLength();
     }
 
-    public byte[] getData()
+    @Override
+    public int compareTo( DiskJournalRecord<V> o )
     {
-        return entry.getData();
+        return Long.valueOf( recordId ).compareTo( o.recordId );
     }
 
     public byte getType()
@@ -38,25 +38,31 @@ class DiskJournalRecord<V>
         return recordId;
     }
 
-    public int getLength()
+    public JournalEntry<V> getJournalEntry()
     {
-        return length;
+        return entry;
     }
 
-    public static <V> void writeRecord( DiskJournalRecord<V> record, JournalEntryWriter<V> writer, RandomAccessFile raf )
+    static <V> void writeRecord( DiskJournalRecord<V> record, byte[] entryData, RandomAccessFile raf )
         throws IOException
     {
-        try ( DataByteArrayOutputBuffer stream = new DataByteArrayOutputBuffer( record.getLength() ) )
+        int minSize = DiskJournal.JOURNAL_RECORD_HEADER_SIZE + 100;
+
+        try ( ByteArrayOutputStream out = new ByteArrayOutputStream( minSize );
+                        DataOutputStream stream = new DataOutputStream( out ) )
         {
-            stream.writeInt( record.getLength() );
+            int recordLength = DiskJournal.JOURNAL_RECORD_HEADER_SIZE + entryData.length;
+
+            stream.writeInt( recordLength );
             stream.writeLong( record.getRecordId() );
-            writer.writeJournalEntry( record.entry, stream );
-            stream.writeInt( record.getLength() );
-            raf.write( stream.toByteArray() );
+            stream.writeByte( record.getType() );
+            stream.write( entryData );
+            stream.writeInt( recordLength );
+            raf.write( out.toByteArray() );
         }
     }
 
-    public static <V> DiskJournalRecord<V> readRecord( JournalEntryReader<V> reader, RandomAccessFile raf )
+    static <V> DiskJournalRecord<V> readRecord( JournalEntryReader<V> reader, RandomAccessFile raf )
         throws IOException
     {
         long pos = raf.getFilePointer();
@@ -81,4 +87,5 @@ class DiskJournalRecord<V>
             throw e;
         }
     }
+
 }

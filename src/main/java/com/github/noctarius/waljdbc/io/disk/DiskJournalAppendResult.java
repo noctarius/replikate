@@ -1,4 +1,4 @@
-package com.github.noctarius.waljdbc.io;
+package com.github.noctarius.waljdbc.io.disk;
 
 public enum DiskJournalAppendResult
 {

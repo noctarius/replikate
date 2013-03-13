@@ -1,7 +1,9 @@
-package com.github.noctarius.waljdbc.io;
+package com.github.noctarius.waljdbc.io.disk;
 
-public class JournalFileHeader
+class JournalFileHeader
 {
+
+    static final byte[] MAGIC_NUMBER = { (byte) 0xFE, (byte) 0xEE, (byte) 0xEE, (byte) 0xEF };
 
     private final int version;
 
@@ -37,7 +39,7 @@ public class JournalFileHeader
         return maxLogFileSize;
     }
 
-    public long getLogFileNumber()
+    public long getLogNumber()
     {
         return logFileNumber;
     }
