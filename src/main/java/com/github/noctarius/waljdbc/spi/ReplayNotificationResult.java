@@ -1,6 +1,6 @@
 package com.github.noctarius.waljdbc.spi;
 
-import com.github.noctarius.waljdbc.JournalException;
+import com.github.noctarius.waljdbc.exceptions.JournalException;
 
 public enum ReplayNotificationResult
 {

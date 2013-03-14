@@ -13,7 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.github.noctarius.waljdbc.JournalEntry;
-import com.github.noctarius.waljdbc.JournalException;
+import com.github.noctarius.waljdbc.exceptions.ReplayCancellationException;
 import com.github.noctarius.waljdbc.spi.JournalEntryReader;
 import com.github.noctarius.waljdbc.spi.JournalFlushedListener;
 import com.github.noctarius.waljdbc.spi.ReplayNotificationResult;
@@ -68,7 +68,7 @@ class DiskJournalReplayer<V>
                         listener.replayNotifySuspiciousRecordId( journal, lastRecord, record.getJournalEntry() );
                     if ( result == ReplayNotificationResult.Except )
                     {
-                        throw new JournalException( "Replay of journal was aborted due by callback" );
+                        throw new ReplayCancellationException( "Replay of journal was aborted due by callback" );
                     }
                     else if ( result == ReplayNotificationResult.Terminate )
                     {
@@ -77,7 +77,7 @@ class DiskJournalReplayer<V>
                 }
                 catch ( RuntimeException e )
                 {
-                    throw new JournalException( "Replay of journal was aborted due "
+                    throw new ReplayCancellationException( "Replay of journal was aborted due "
                         + "to missing recordId in the journal file", e );
                 }
             }
@@ -93,7 +93,7 @@ class DiskJournalReplayer<V>
                 ReplayNotificationResult result = listener.replayRecordId( journal, record.getJournalEntry() );
                 if ( result == ReplayNotificationResult.Except )
                 {
-                    throw new JournalException( "Replay of journal was aborted by callback" );
+                    throw new ReplayCancellationException( "Replay of journal was aborted by callback" );
                 }
                 else if ( result == ReplayNotificationResult.Terminate )
                 {
@@ -102,7 +102,7 @@ class DiskJournalReplayer<V>
             }
             catch ( RuntimeException e )
             {
-                throw new JournalException( "Replay of journal was aborted due to exception in callback", e );
+                throw new ReplayCancellationException( "Replay of journal was aborted due to exception in callback", e );
             }
         }
     }

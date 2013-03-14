@@ -11,7 +11,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import com.github.noctarius.waljdbc.Journal;
 import com.github.noctarius.waljdbc.JournalEntry;
-import com.github.noctarius.waljdbc.JournalException;
+import com.github.noctarius.waljdbc.exceptions.JournalException;
 
 class DiskJournalFile<V>
 {

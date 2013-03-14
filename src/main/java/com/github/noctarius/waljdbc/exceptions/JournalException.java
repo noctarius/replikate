@@ -1,4 +1,4 @@
-package com.github.noctarius.waljdbc;
+package com.github.noctarius.waljdbc.exceptions;
 
 public class JournalException
     extends RuntimeException

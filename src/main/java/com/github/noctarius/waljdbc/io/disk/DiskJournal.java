@@ -11,7 +11,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.github.noctarius.waljdbc.JournalEntry;
-import com.github.noctarius.waljdbc.JournalException;
+import com.github.noctarius.waljdbc.exceptions.JournalException;
+import com.github.noctarius.waljdbc.exceptions.SynchronousJournalException;
 import com.github.noctarius.waljdbc.spi.AbstractJournal;
 import com.github.noctarius.waljdbc.spi.JournalEntryReader;
 import com.github.noctarius.waljdbc.spi.JournalEntryWriter;
@@ -104,7 +105,7 @@ public class DiskJournal<V>
         {
             if ( listener != null )
             {
-                listener.failed( entry, new JournalException( "Failed to persist journal entry", e ) );
+                listener.failed( entry, new SynchronousJournalException( "Failed to persist journal entry", e ) );
             }
         }
     }

@@ -16,8 +16,8 @@ import org.junit.Test;
 
 import com.github.noctarius.waljdbc.Journal;
 import com.github.noctarius.waljdbc.JournalEntry;
-import com.github.noctarius.waljdbc.JournalException;
 import com.github.noctarius.waljdbc.SimpleJournalEntry;
+import com.github.noctarius.waljdbc.exceptions.JournalException;
 import com.github.noctarius.waljdbc.io.disk.DiskJournal;
 import com.github.noctarius.waljdbc.spi.JournalEntryReader;
 import com.github.noctarius.waljdbc.spi.JournalEntryWriter;

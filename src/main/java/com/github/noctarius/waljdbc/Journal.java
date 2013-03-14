@@ -2,6 +2,7 @@ package com.github.noctarius.waljdbc;
 
 import java.io.IOException;
 
+import com.github.noctarius.waljdbc.exceptions.JournalException;
 import com.github.noctarius.waljdbc.spi.JournalEntryReader;
 import com.github.noctarius.waljdbc.spi.JournalEntryWriter;
 import com.github.noctarius.waljdbc.spi.JournalFlushedListener;
