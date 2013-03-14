@@ -12,8 +12,11 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.github.noctarius.waljdbc.JournalEntry;
+import com.github.noctarius.waljdbc.JournalException;
 import com.github.noctarius.waljdbc.spi.JournalEntryReader;
 import com.github.noctarius.waljdbc.spi.JournalFlushedListener;
+import com.github.noctarius.waljdbc.spi.ReplayNotificationResult;
 
 class DiskJournalReplayer<V>
 {
@@ -51,19 +54,56 @@ class DiskJournalReplayer<V>
 
         // Iterate the list and search for holes in history
         long lastRecordId = -1;
+        JournalEntry<V> lastRecord = null;
         for ( DiskJournalRecord<V> record : records )
         {
             if ( lastRecordId != -1 && record.getRecordId() != lastRecordId + 1 )
             {
                 LOGGER.error( journal.getName() + ": There is a hole in history in journal " + lastRecordId + "->"
                     + record.getRecordId() );
+
+                try
+                {
+                    ReplayNotificationResult result =
+                        listener.replayNotifySuspiciousRecordId( journal, lastRecord, record.getJournalEntry() );
+                    if ( result == ReplayNotificationResult.Except )
+                    {
+                        throw new JournalException( "Replay of journal was aborted due by callback" );
+                    }
+                    else if ( result == ReplayNotificationResult.Terminate )
+                    {
+                        break;
+                    }
+                }
+                catch ( RuntimeException e )
+                {
+                    throw new JournalException( "Replay of journal was aborted due "
+                        + "to missing recordId in the journal file", e );
+                }
             }
+            lastRecordId = record.getRecordId();
+            lastRecord = record.getJournalEntry();
         }
 
         for ( DiskJournalRecord<V> record : records )
         {
             LOGGER.info( journal.getName() + ": Reannouncing journal entry " + record.getRecordId() );
-            listener.flushed( record.getJournalEntry() );
+            try
+            {
+                ReplayNotificationResult result = listener.replayRecordId( journal, record.getJournalEntry() );
+                if ( result == ReplayNotificationResult.Except )
+                {
+                    throw new JournalException( "Replay of journal was aborted by callback" );
+                }
+                else if ( result == ReplayNotificationResult.Terminate )
+                {
+                    break;
+                }
+            }
+            catch ( RuntimeException e )
+            {
+                throw new JournalException( "Replay of journal was aborted due to exception in callback", e );
+            }
         }
     }
 
@@ -75,12 +115,18 @@ class DiskJournalReplayer<V>
             JournalFileHeader header = readHeader( raf );
             LOGGER.info( journal.getName() + ": Reading old journal file with logNumber " + header.getLogNumber() );
 
-            int pos = DiskJournal.JOURNAL_FILE_HEADER_SIZE;
+            int pos = header.getFirstDataOffset();
             while ( pos < raf.length() )
             {
                 // Read length at begin of the record start
                 raf.seek( pos );
                 int startingLength = raf.readInt();
+
+                if ( startingLength == 0 )
+                {
+                    // File is completely read
+                    break;
+                }
 
                 // Read length at begin of the record end
                 raf.seek( pos + startingLength - 4 );
@@ -89,14 +135,20 @@ class DiskJournalReplayer<V>
                 // If both length values differ this record is broken
                 if ( startingLength != endingLength )
                 {
+                    LOGGER.debug( "pos=" + pos + ", startingLength=" + startingLength + ", endingLength="
+                        + endingLength );
                     LOGGER.info( journal.getName() + ": Incomplete record in journal file with logNumber "
                         + header.getLogNumber() );
                     break;
                 }
 
+                LOGGER.debug( journal.getName() + ": Found new record in logNumber " + header.getLogNumber() );
+
                 // Read recordId
                 raf.seek( pos + 4 );
                 long recordId = raf.readLong();
+
+                LOGGER.debug( journal.getName() + ": Reading record " + recordId );
 
                 // Read information of the entry
                 byte type = raf.readByte();
