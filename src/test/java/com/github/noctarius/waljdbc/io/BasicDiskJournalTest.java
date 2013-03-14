@@ -30,7 +30,7 @@ public class BasicDiskJournalTest
 {
 
     private static final String TESTCHARACTERS =
-        "QWERTZUIOPÜASDFGHJKLÖÄYXCVBNM;:_*'Ä_?=)(/&%$§!qwertzuiopü+#äölkjhgfdsayxcvbnm,.-";
+        "QWERTZUIOPÜASDFGHJKLÖÄYXCVBNM;:_*'Ä_?=)(/&%$§!qwertzuiopü+#äölkjhgfdsayxcvbnm,.-@@ł€¶ŧ←↓→øþſðđŋħł«¢„“”µ·…";
 
     @Test
     public void createJournalFile()
