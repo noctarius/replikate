@@ -53,7 +53,6 @@ public class BasicDiskJournalTest
         journal.close();
 
         assertEquals( 0, listener.getCount() );
-
     }
 
     @Test
