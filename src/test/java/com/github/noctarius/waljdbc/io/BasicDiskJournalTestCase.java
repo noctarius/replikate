@@ -26,7 +26,7 @@ import com.github.noctarius.waljdbc.spi.JournalNamingStrategy;
 import com.github.noctarius.waljdbc.spi.JournalRecordIdGenerator;
 import com.github.noctarius.waljdbc.spi.ReplayNotificationResult;
 
-public class BasicDiskJournalTest
+public class BasicDiskJournalTestCase
 {
 
     private static final String TESTCHARACTERS =
@@ -385,7 +385,7 @@ public class BasicDiskJournalTest
                 TestRecord record = new TestRecord();
                 record.value = value;
                 record.name = name;
-                return new SimpleJournalEntry<BasicDiskJournalTest.TestRecord>( record, type );
+                return new SimpleJournalEntry<BasicDiskJournalTestCase.TestRecord>( record, type );
             }
         }
 
