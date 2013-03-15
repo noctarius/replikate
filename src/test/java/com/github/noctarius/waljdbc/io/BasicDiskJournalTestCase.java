@@ -378,8 +378,8 @@ public class BasicDiskJournalTestCase
         public JournalEntry<TestRecord> readJournalEntry( long recordId, byte type, byte[] data )
             throws IOException
         {
-            try (ByteArrayInputStream in = new ByteArrayInputStream( data );
-                            DataInputStream buffer = new DataInputStream( in ))
+            try ( ByteArrayInputStream in = new ByteArrayInputStream( data );
+                            DataInputStream buffer = new DataInputStream( in ) )
             {
                 int value = buffer.readInt();
                 String name = buffer.readUTF();

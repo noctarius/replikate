@@ -68,7 +68,7 @@ class DiskJournalReplayer<V>
                         listener.replayNotifySuspiciousRecordId( journal, lastRecord, record.getJournalEntry() );
                     if ( result == ReplayNotificationResult.Except )
                     {
-                        throw new ReplayCancellationException( "Replay of journal was aborted due by callback" );
+                        throw new ReplayCancellationException( "Replay of journal was aborted by callback" );
                     }
                     else if ( result == ReplayNotificationResult.Terminate )
                     {

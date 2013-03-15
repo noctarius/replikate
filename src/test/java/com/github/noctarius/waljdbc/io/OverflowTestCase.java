@@ -5,7 +5,6 @@ import static org.junit.Assert.assertEquals;
 import java.io.DataOutput;
 import java.io.File;
 import java.io.IOException;
-import java.io.RandomAccessFile;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -51,20 +50,6 @@ public class OverflowTestCase
 
         journal.close();
 
-        File file = new File( path, "journal-1" );
-        RandomAccessFile raf = new RandomAccessFile( file, "rws" );
-
-        raf.seek( file.length() - 1 );
-        while ( raf.readByte() == 0 )
-        {
-            raf.seek( raf.getFilePointer() - 2 );
-        }
-        long length = raf.getFilePointer() - 20;
-        raf.setLength( length );
-        raf.close();
-
-        assertEquals( length, file.length() );
-
         CountingFlushListener listener = new CountingFlushListener( ReplayNotificationResult.Except );
         journal =
             new DiskJournal<>( "testSimpleFileOverflow", path.toPath(), listener, 1024 * 1024, new RecordIdGenerator(),
@@ -79,6 +64,42 @@ public class OverflowTestCase
         assertEquals( record1, result1 );
         assertEquals( record2, result2 );
         assertEquals( record3, result3 );
+    }
+
+    @Test
+    public void testMultipleSimpleFileOverflow()
+        throws Exception
+    {
+        File path = new File( "target/journals/testMultipleSimpleFileOverflow" );
+        path.mkdirs();
+
+        RecordIdGenerator recordIdGenerator = new RecordIdGenerator();
+        DiskJournal<byte[]> journal =
+            new DiskJournal<>( "testMultipleSimpleFileOverflow", path.toPath(), new FlushListener(), 1024,
+                               recordIdGenerator, new RecordReader(), new RecordWriter(), new NamingStrategy() );
+
+        @SuppressWarnings( "unchecked" )
+        JournalEntry<byte[]>[] records = new JournalEntry[50];
+        for ( int i = 0; i < records.length; i++ )
+        {
+            records[i] = buildTestRecord( (byte) i );
+            journal.appendEntry( records[i] );
+        }
+
+        journal.close();
+
+        CountingFlushListener listener = new CountingFlushListener( ReplayNotificationResult.Except );
+        journal =
+            new DiskJournal<>( "testMultipleSimpleFileOverflow", path.toPath(), listener, 1024 * 1024,
+                               new RecordIdGenerator(), new RecordReader(), new RecordWriter(), new NamingStrategy() );
+
+        assertEquals( records.length, listener.count );
+
+        for ( int i = 0; i < records.length; i++ )
+        {
+            JournalEntry<byte[]> result = listener.get( i );
+            assertEquals( records[i], result );
+        }
     }
 
     private SimpleJournalEntry<byte[]> buildTestRecord( byte type )
@@ -125,31 +146,27 @@ public class OverflowTestCase
         @Override
         public void flushed( JournalEntry<byte[]> entry )
         {
-            // TODO Auto-generated method stub
-
+            System.out.println( "flushed: " + entry );
         }
 
         @Override
         public void failed( JournalEntry<byte[]> entry, JournalException cause )
         {
-            // TODO Auto-generated method stub
-
+            System.out.println( "failed: " + entry );
         }
 
         @Override
         public ReplayNotificationResult replayNotifySuspiciousRecordId( Journal<byte[]> journal,
                                                                         JournalEntry<byte[]> lastEntry,
-                                                                        JournalEntry<byte[]> currentEntry )
+                                                                        JournalEntry<byte[]> nextEntry )
         {
-            // TODO Auto-generated method stub
-            return null;
+            return ReplayNotificationResult.Continue;
         }
 
         @Override
         public ReplayNotificationResult replayRecordId( Journal<byte[]> journal, JournalEntry<byte[]> entry )
         {
-            // TODO Auto-generated method stub
-            return null;
+            return ReplayNotificationResult.Continue;
         }
 
     }
