@@ -18,7 +18,6 @@ import com.github.noctarius.waljdbc.Journal;
 import com.github.noctarius.waljdbc.JournalEntry;
 import com.github.noctarius.waljdbc.SimpleJournalEntry;
 import com.github.noctarius.waljdbc.exceptions.JournalException;
-import com.github.noctarius.waljdbc.exceptions.ReplayCancellationException;
 import com.github.noctarius.waljdbc.io.disk.DiskJournal;
 import com.github.noctarius.waljdbc.spi.JournalEntryReader;
 import com.github.noctarius.waljdbc.spi.JournalEntryWriter;
@@ -27,7 +26,7 @@ import com.github.noctarius.waljdbc.spi.JournalNamingStrategy;
 import com.github.noctarius.waljdbc.spi.JournalRecordIdGenerator;
 import com.github.noctarius.waljdbc.spi.ReplayNotificationResult;
 
-public class BasicDiskJournalTest
+public class BasicDiskJournalTestCase
 {
 
     private static final String TESTCHARACTERS =
@@ -248,7 +247,7 @@ public class BasicDiskJournalTest
         assertEquals( record3, listener.get( 2 ) );
     }
 
-    @Test( expected = ReplayCancellationException.class )
+    @Test( expected = JournalException.class )
     public void findHolesInJournalAndDeclineIt()
         throws Exception
     {
@@ -378,15 +377,15 @@ public class BasicDiskJournalTest
         public JournalEntry<TestRecord> readJournalEntry( long recordId, byte type, byte[] data )
             throws IOException
         {
-            try (ByteArrayInputStream in = new ByteArrayInputStream( data );
-                            DataInputStream buffer = new DataInputStream( in ))
+            try ( ByteArrayInputStream in = new ByteArrayInputStream( data );
+                            DataInputStream buffer = new DataInputStream( in ) )
             {
                 int value = buffer.readInt();
                 String name = buffer.readUTF();
                 TestRecord record = new TestRecord();
                 record.value = value;
                 record.name = name;
-                return new SimpleJournalEntry<BasicDiskJournalTest.TestRecord>( record, type );
+                return new SimpleJournalEntry<BasicDiskJournalTestCase.TestRecord>( record, type );
             }
         }
 

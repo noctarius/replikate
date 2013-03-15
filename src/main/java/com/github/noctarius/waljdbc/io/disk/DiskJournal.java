@@ -95,10 +95,21 @@ public class DiskJournal<V>
     {
         try
         {
-            journalFile.get().appendRecord( entry );
-            if ( listener != null )
+            DiskJournalAppendResult result = journalFile.get().appendRecord( entry );
+            if ( result == DiskJournalAppendResult.APPEND_SUCCESSFUL )
             {
-                listener.flushed( entry );
+                if ( listener != null )
+                {
+                    listener.flushed( entry );
+                }
+            }
+            else if ( result == DiskJournalAppendResult.JOURNAL_OVERFLOW )
+            {
+                // TODO simple overflow
+            }
+            else if ( result == DiskJournalAppendResult.JOURNAL_FULL_OVERFLOW )
+            {
+                // TODO Full overflow
             }
         }
         catch ( IOException e )
