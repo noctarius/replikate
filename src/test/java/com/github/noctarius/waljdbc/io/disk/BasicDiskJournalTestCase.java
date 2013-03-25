@@ -1,4 +1,4 @@
-package com.github.noctarius.waljdbc.io;
+package com.github.noctarius.waljdbc.io.disk;
 
 import static org.junit.Assert.assertEquals;
 
@@ -16,6 +16,7 @@ import org.junit.Test;
 
 import com.github.noctarius.waljdbc.Journal;
 import com.github.noctarius.waljdbc.JournalEntry;
+import com.github.noctarius.waljdbc.JournalRecord;
 import com.github.noctarius.waljdbc.SimpleJournalEntry;
 import com.github.noctarius.waljdbc.exceptions.JournalException;
 import com.github.noctarius.waljdbc.exceptions.ReplayCancellationException;
@@ -28,6 +29,7 @@ import com.github.noctarius.waljdbc.spi.JournalRecordIdGenerator;
 import com.github.noctarius.waljdbc.spi.ReplayNotificationResult;
 
 public class BasicDiskJournalTestCase
+    extends AbstractJournalTestCase
 {
 
     private static final String TESTCHARACTERS =
@@ -37,8 +39,7 @@ public class BasicDiskJournalTestCase
     public void createJournalFile()
         throws Exception
     {
-        File path = new File( "target/journals/createJournalFile" );
-        path.mkdirs();
+        File path = prepareJournalDirectory( "createJournalFile" );
 
         DiskJournal<TestRecord> journal =
             new DiskJournal<>( "createJournalFile", path.toPath(), new FlushListener(), 1024 * 1024,
@@ -60,8 +61,7 @@ public class BasicDiskJournalTestCase
     public void appendEntries()
         throws Exception
     {
-        File path = new File( "target/journals/appendEntries" );
-        path.mkdirs();
+        File path = prepareJournalDirectory( "appendEntries" );
 
         DiskJournal<TestRecord> journal =
             new DiskJournal<>( "appendEntries", path.toPath(), new FlushListener(), 1024 * 1024,
@@ -97,8 +97,7 @@ public class BasicDiskJournalTestCase
     public void loadBrokenJournal()
         throws Exception
     {
-        File path = new File( "target/journals/loadBrokenJournal" );
-        path.mkdirs();
+        File path = prepareJournalDirectory( "loadBrokenJournal" );
 
         DiskJournal<TestRecord> journal =
             new DiskJournal<>( "loadBrokenJournal", path.toPath(), new FlushListener(), 1024 * 1024,
@@ -147,8 +146,7 @@ public class BasicDiskJournalTestCase
     public void loadShortenedJournal()
         throws Exception
     {
-        File path = new File( "target/journals/loadShortenedJournal" );
-        path.mkdirs();
+        File path = prepareJournalDirectory( "loadShortenedJournal" );
 
         DiskJournal<TestRecord> journal =
             new DiskJournal<>( "loadShortenedJournal", path.toPath(), new FlushListener(), 1024 * 1024,
@@ -197,8 +195,7 @@ public class BasicDiskJournalTestCase
     public void findHolesInJournalAndAcceptIt()
         throws Exception
     {
-        File path = new File( "target/journals/findHolesInJournalAndAcceptIt" );
-        path.mkdirs();
+        File path = prepareJournalDirectory( "findHolesInJournalAndAcceptIt" );
 
         RecordIdGenerator recordIdGenerator = new RecordIdGenerator();
         DiskJournal<TestRecord> journal =
@@ -221,20 +218,6 @@ public class BasicDiskJournalTestCase
 
         journal.close();
 
-        File file = new File( path, "journal-1" );
-        RandomAccessFile raf = new RandomAccessFile( file, "rws" );
-
-        raf.seek( file.length() - 1 );
-        while ( raf.readByte() == 0 )
-        {
-            raf.seek( raf.getFilePointer() - 2 );
-        }
-        long length = raf.getFilePointer() - 20;
-        raf.setLength( length );
-        raf.close();
-
-        assertEquals( length, file.length() );
-
         CountingFlushListener listener = new CountingFlushListener();
         journal =
             new DiskJournal<>( "findHolesInJournalAndAcceptIt", path.toPath(), listener, 1024 * 1024,
@@ -242,18 +225,18 @@ public class BasicDiskJournalTestCase
                                new NamingStrategy() );
         journal.close();
 
-        assertEquals( 3, listener.getCount() );
+        assertEquals( 4, listener.getCount() );
         assertEquals( record1, listener.get( 0 ) );
         assertEquals( record2, listener.get( 1 ) );
         assertEquals( record3, listener.get( 2 ) );
+        assertEquals( record4, listener.get( 3 ) );
     }
 
     @Test( expected = ReplayCancellationException.class )
     public void findHolesInJournalAndDeclineIt()
         throws Exception
     {
-        File path = new File( "target/journals/findHolesInJournalAndDeclineIt" );
-        path.mkdirs();
+        File path = prepareJournalDirectory( "findHolesInJournalAndDeclineIt" );
 
         RecordIdGenerator recordIdGenerator = new RecordIdGenerator();
         DiskJournal<TestRecord> journal =
@@ -275,20 +258,6 @@ public class BasicDiskJournalTestCase
         journal.appendEntry( record4 );
 
         journal.close();
-
-        File file = new File( path, "journal-1" );
-        RandomAccessFile raf = new RandomAccessFile( file, "rws" );
-
-        raf.seek( file.length() - 1 );
-        while ( raf.readByte() == 0 )
-        {
-            raf.seek( raf.getFilePointer() - 2 );
-        }
-        long length = raf.getFilePointer() - 20;
-        raf.setLength( length );
-        raf.close();
-
-        assertEquals( length, file.length() );
 
         try
         {
@@ -424,6 +393,12 @@ public class BasicDiskJournalTestCase
             return recordId;
         }
 
+        @Override
+        public void notifyHighestJournalRecordId( long recordId )
+        {
+            this.recordId = recordId;
+        }
+
     }
 
     public static class NamingStrategy
@@ -455,9 +430,9 @@ public class BasicDiskJournalTestCase
     {
 
         @Override
-        public void flushed( JournalEntry<TestRecord> entry )
+        public void flushed( JournalRecord<TestRecord> record )
         {
-            System.out.println( "flushed: " + entry );
+            System.out.println( "flushed: " + record );
         }
 
         @Override
@@ -468,14 +443,14 @@ public class BasicDiskJournalTestCase
 
         @Override
         public ReplayNotificationResult replayNotifySuspiciousRecordId( Journal<TestRecord> journal,
-                                                                        JournalEntry<TestRecord> lastEntry,
-                                                                        JournalEntry<TestRecord> nextEntry )
+                                                                        JournalRecord<TestRecord> lastRecord,
+                                                                        JournalRecord<TestRecord> nextRecord )
         {
             return ReplayNotificationResult.Continue;
         }
 
         @Override
-        public ReplayNotificationResult replayRecordId( Journal<TestRecord> journal, JournalEntry<TestRecord> entry )
+        public ReplayNotificationResult replayRecordId( Journal<TestRecord> journal, JournalRecord<TestRecord> record )
         {
             return ReplayNotificationResult.Continue;
         }
@@ -488,7 +463,7 @@ public class BasicDiskJournalTestCase
 
         private int count;
 
-        private final List<JournalEntry<TestRecord>> records = new ArrayList<>();
+        private final List<JournalRecord<TestRecord>> records = new ArrayList<>();
 
         private final ReplayNotificationResult missingRecordIdResult;
 
@@ -504,18 +479,18 @@ public class BasicDiskJournalTestCase
 
         @Override
         public ReplayNotificationResult replayNotifySuspiciousRecordId( Journal<TestRecord> journal,
-                                                                        JournalEntry<TestRecord> lastEntry,
-                                                                        JournalEntry<TestRecord> nextEntry )
+                                                                        JournalRecord<TestRecord> lastRecord,
+                                                                        JournalRecord<TestRecord> nextRecord )
         {
             return missingRecordIdResult;
         }
 
         @Override
-        public ReplayNotificationResult replayRecordId( Journal<TestRecord> journal, JournalEntry<TestRecord> entry )
+        public ReplayNotificationResult replayRecordId( Journal<TestRecord> journal, JournalRecord<TestRecord> record )
         {
-            records.add( entry );
+            records.add( record );
             count++;
-            return super.replayRecordId( journal, entry );
+            return super.replayRecordId( journal, record );
         }
 
         public int getCount()
@@ -525,7 +500,7 @@ public class BasicDiskJournalTestCase
 
         public JournalEntry<TestRecord> get( int index )
         {
-            return records.get( index );
+            return records.get( index ).getJournalEntry();
         }
 
     }

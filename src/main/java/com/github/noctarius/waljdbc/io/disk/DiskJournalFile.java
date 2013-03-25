@@ -5,16 +5,20 @@ import java.io.DataOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
-import java.util.Arrays;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.github.noctarius.waljdbc.Journal;
-import com.github.noctarius.waljdbc.JournalEntry;
+import com.github.noctarius.waljdbc.JournalRecord;
 import com.github.noctarius.waljdbc.exceptions.JournalException;
 
 class DiskJournalFile<V>
 {
+
+    private final Logger LOGGER = LoggerFactory.getLogger( DiskJournalFile.class );
 
     private final RandomAccessFile raf;
 
@@ -24,13 +28,20 @@ class DiskJournalFile<V>
 
     private final DiskJournal<V> journal;
 
-    public DiskJournalFile( DiskJournal<V> journal, File file, long logNumber )
+    public DiskJournalFile( DiskJournal<V> journal, File file, long logNumber, int maxLogFileSize )
         throws IOException
     {
-        this( journal, file, logNumber, true );
+        this( journal, file, logNumber, maxLogFileSize, DiskJournal.JOURNAL_FILE_TYPE_DEFAULT );
     }
 
-    DiskJournalFile( DiskJournal<V> journal, File file, long logNumber, boolean createIfNotExisting )
+    public DiskJournalFile( DiskJournal<V> journal, File file, long logNumber, int maxLogFileSize, byte type )
+        throws IOException
+    {
+        this( journal, file, logNumber, maxLogFileSize, type, true );
+    }
+
+    DiskJournalFile( DiskJournal<V> journal, File file, long logNumber, int maxLogFileSize, byte type,
+                     boolean createIfNotExisting )
         throws IOException
     {
         if ( !file.exists() && !createIfNotExisting )
@@ -40,7 +51,7 @@ class DiskJournalFile<V>
 
         this.journal = journal;
         this.raf = new RandomAccessFile( file, "rws" );
-        this.header = createJournal( buildHeader( journal.getMaxLogFileSize(), logNumber ) );
+        this.header = DiskJournalIOUtils.createJournal( raf, buildHeader( maxLogFileSize, type, logNumber ) );
     }
 
     public int getPosition()
@@ -55,9 +66,11 @@ class DiskJournalFile<V>
         }
     }
 
-    public DiskJournalAppendResult appendRecord( JournalEntry<V> entry )
+    public Tuple<DiskJournalAppendResult, JournalRecord<V>> appendRecord( DiskJournalEntryFacade<V> entry )
         throws IOException
     {
+        long nanoSeconds = System.nanoTime();
+
         try
         {
             appendLock.lock();
@@ -65,46 +78,39 @@ class DiskJournalFile<V>
                             DataOutputStream stream = new DataOutputStream( out ) )
             {
                 byte[] entryData = null;
-                if ( entry instanceof DiskJournalEntry )
+                if ( entry.cachedData != null )
                 {
-                    DiskJournalEntry<V> journalEntry = (DiskJournalEntry<V>) entry;
-                    if ( journalEntry.cachedData != null )
-                    {
-                        entryData = journalEntry.cachedData;
-                    }
+                    entryData = entry.cachedData;
                 }
 
                 if ( entryData == null )
                 {
                     journal.getWriter().writeJournalEntry( entry, stream );
                     entryData = out.toByteArray();
-
-                    if ( entry instanceof DiskJournalEntry )
-                    {
-                        ( (DiskJournalEntry<V>) entry ).cachedData = entryData;
-                    }
+                    entry.cachedData = entryData;
                 }
 
                 int length = entryData.length + DiskJournal.JOURNAL_RECORD_HEADER_SIZE;
                 if ( length > header.getMaxLogFileSize() )
                 {
-                    return DiskJournalAppendResult.JOURNAL_FULL_OVERFLOW;
+                    return new Tuple<>( DiskJournalAppendResult.JOURNAL_FULL_OVERFLOW, null );
                 }
                 else if ( header.getMaxLogFileSize() < getPosition() + length )
                 {
-                    return DiskJournalAppendResult.JOURNAL_OVERFLOW;
+                    return new Tuple<>( DiskJournalAppendResult.JOURNAL_OVERFLOW, null );
                 }
 
                 long recordId = journal.getRecordIdGenerator().nextRecordId();
-                DiskJournalRecord<V> record = new DiskJournalRecord<V>( entry, recordId );
-                DiskJournalRecord.writeRecord( record, entryData, raf );
+                DiskJournalRecord<V> record = new DiskJournalRecord<V>( entry.wrappedEntry, recordId );
+                DiskJournalIOUtils.writeRecord( record, entryData, raf );
 
-                return DiskJournalAppendResult.APPEND_SUCCESSFUL;
+                return new Tuple<>( DiskJournalAppendResult.APPEND_SUCCESSFUL, (JournalRecord<V>) record );
             }
         }
         finally
         {
             appendLock.unlock();
+            LOGGER.trace( "DiskJournalFile::appendRecord took {}ns", ( System.nanoTime() - nanoSeconds ) );
         }
     }
 
@@ -119,32 +125,9 @@ class DiskJournalFile<V>
         return header;
     }
 
-    private JournalFileHeader createJournal( JournalFileHeader header )
-        throws IOException
+    private JournalFileHeader buildHeader( int maxLogFileSize, byte type, long logNumber )
     {
-        byte[] prefiller = new byte[header.getMaxLogFileSize()];
-        Arrays.fill( prefiller, (byte) 0 );
-
-        // Resize the file to maxLogFileSize
-        raf.setLength( header.getMaxLogFileSize() );
-        raf.seek( 0 );
-        raf.write( prefiller );
-
-        raf.seek( 0 );
-        raf.write( JournalFileHeader.MAGIC_NUMBER );
-        raf.writeInt( header.getVersion() );
-        raf.writeInt( header.getMaxLogFileSize() );
-        raf.writeLong( header.getLogNumber() );
-        raf.write( header.getType() );
-        raf.writeInt( header.getFirstDataOffset() );
-
-        return header;
-    }
-
-    private JournalFileHeader buildHeader( int maxLogFileSize, long logNumber )
-    {
-        return new JournalFileHeader( Journal.JOURNAL_VERSION, maxLogFileSize, logNumber,
-                                      DiskJournal.JOURNAL_FILE_TYPE_DEFAULT );
+        return new JournalFileHeader( Journal.JOURNAL_VERSION, maxLogFileSize, logNumber, type );
     }
 
 }

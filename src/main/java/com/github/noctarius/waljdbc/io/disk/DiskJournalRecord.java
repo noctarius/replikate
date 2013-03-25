@@ -1,15 +1,10 @@
 package com.github.noctarius.waljdbc.io.disk;
 
-import java.io.ByteArrayOutputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
-import java.io.RandomAccessFile;
-
 import com.github.noctarius.waljdbc.JournalEntry;
-import com.github.noctarius.waljdbc.spi.JournalEntryReader;
+import com.github.noctarius.waljdbc.JournalRecord;
 
 class DiskJournalRecord<V>
-    implements Comparable<DiskJournalRecord<V>>
+    implements JournalRecord<V>
 {
 
     private final JournalEntry<V> entry;
@@ -23,69 +18,33 @@ class DiskJournalRecord<V>
     }
 
     @Override
-    public int compareTo( DiskJournalRecord<V> o )
+    public int compareTo( JournalRecord<V> o )
     {
-        return Long.valueOf( recordId ).compareTo( o.recordId );
+        return Long.valueOf( recordId ).compareTo( o.getRecordId() );
     }
 
+    @Override
     public byte getType()
     {
         return entry.getType();
     }
 
+    @Override
     public long getRecordId()
     {
         return recordId;
     }
 
+    @Override
     public JournalEntry<V> getJournalEntry()
     {
         return entry;
     }
 
-    static <V> void writeRecord( DiskJournalRecord<V> record, byte[] entryData, RandomAccessFile raf )
-        throws IOException
+    @Override
+    public String toString()
     {
-        int minSize = DiskJournal.JOURNAL_RECORD_HEADER_SIZE + 100;
-
-        try ( ByteArrayOutputStream out = new ByteArrayOutputStream( minSize );
-                        DataOutputStream stream = new DataOutputStream( out ) )
-        {
-            int recordLength = DiskJournal.JOURNAL_RECORD_HEADER_SIZE + entryData.length;
-
-            stream.writeInt( recordLength );
-            stream.writeLong( record.getRecordId() );
-            stream.writeByte( record.getType() );
-            stream.write( entryData );
-            stream.writeInt( recordLength );
-            raf.write( out.toByteArray() );
-        }
-    }
-
-    static <V> DiskJournalRecord<V> readRecord( JournalEntryReader<V> reader, RandomAccessFile raf )
-        throws IOException
-    {
-        long pos = raf.getFilePointer();
-
-        try
-        {
-            int startingLength = raf.readInt();
-            long recordId = raf.readLong();
-
-            int entryLength = startingLength - DiskJournal.JOURNAL_RECORD_HEADER_SIZE;
-            byte type = raf.readByte();
-
-            byte[] entryData = new byte[entryLength];
-            raf.readFully( entryData );
-
-            return new DiskJournalRecord<>( reader.readJournalEntry( recordId, type, entryData ), recordId );
-        }
-        catch ( IOException e )
-        {
-            // Will never throw IOException itself since pos > 0 < maxLength
-            raf.seek( pos );
-            throw e;
-        }
+        return "DiskJournalRecord [recordId=" + recordId + ", entry=" + entry + "]";
     }
 
 }

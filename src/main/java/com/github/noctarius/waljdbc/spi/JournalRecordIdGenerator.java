@@ -7,4 +7,6 @@ public interface JournalRecordIdGenerator
 
     long lastGeneratedRecordId();
 
+    void notifyHighestJournalRecordId( long recordId );
+
 }

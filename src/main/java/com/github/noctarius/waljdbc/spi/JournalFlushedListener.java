@@ -2,12 +2,13 @@ package com.github.noctarius.waljdbc.spi;
 
 import com.github.noctarius.waljdbc.Journal;
 import com.github.noctarius.waljdbc.JournalEntry;
+import com.github.noctarius.waljdbc.JournalRecord;
 import com.github.noctarius.waljdbc.exceptions.JournalException;
 
 public interface JournalFlushedListener<V>
 {
 
-    void flushed( JournalEntry<V> entry );
+    void flushed( JournalRecord<V> record );
 
     void failed( JournalEntry<V> entry, JournalException cause );
 
@@ -25,12 +26,12 @@ public interface JournalFlushedListener<V>
      * </ul>
      * 
      * @param journal The journal that is read
-     * @param lastEntry The previously read journal entry
-     * @param currentEntry The currently read journal entry
+     * @param lastRecord The previously read journal record
+     * @param currentRecord The currently read journal record
      * @return Further execution behavior
      */
-    ReplayNotificationResult replayNotifySuspiciousRecordId( Journal<V> journal, JournalEntry<V> lastEntry,
-                                                             JournalEntry<V> currentEntry );
+    ReplayNotificationResult replayNotifySuspiciousRecordId( Journal<V> journal, JournalRecord<V> lastRecord,
+                                                             JournalRecord<V> currentRecord );
 
     /**
      * This method is called when during startup of the Journal implementation a previous journal was found and records
@@ -44,9 +45,9 @@ public interface JournalFlushedListener<V>
      * throwing an {@link RuntimeException} inside the callback)</li>
      * 
      * @param journal The journal that is read
-     * @param entry The currently read journal entry
+     * @param record The currently read journal record
      * @return Further execution behavior
      */
-    ReplayNotificationResult replayRecordId( Journal<V> journal, JournalEntry<V> entry );
+    ReplayNotificationResult replayRecordId( Journal<V> journal, JournalRecord<V> record );
 
 }

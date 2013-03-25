@@ -58,7 +58,7 @@ class DiskJournalBacktracker<V>
             RandomAccessFile raf = new RandomAccessFile( file.toFile(), "r" );
             if ( raf.length() < journal.getMaxLogFileSize() )
             {
-                LOGGER.warn( journal.getName() + ": Incomplete journal found, reading as much as possible..." );
+                LOGGER.warn( "{}: Incomplete journal found, reading as much as possible...", journal.getName() );
             }
 
             // Is file completely full we need to start searching at the beginning because we cannot guarantee that the
@@ -67,7 +67,7 @@ class DiskJournalBacktracker<V>
             if ( record.getRecordId() == lastRecordId )
             {
                 long logNumber = journal.getNamingStrategy().extractLogNumber( file.toFile().getName() );
-                foundJournalFile = new DiskJournalFile<V>( journal, file.toFile(), logNumber, false );
+                foundJournalFile = new DiskJournalFile<V>( journal, file.toFile(), logNumber, -1, (byte) -1, false );
                 return FileVisitResult.TERMINATE;
             }
 

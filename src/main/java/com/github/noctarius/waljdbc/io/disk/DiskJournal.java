@@ -5,12 +5,14 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.Deque;
+import java.util.concurrent.ConcurrentLinkedDeque;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.github.noctarius.waljdbc.JournalEntry;
+import com.github.noctarius.waljdbc.JournalRecord;
 import com.github.noctarius.waljdbc.exceptions.JournalException;
 import com.github.noctarius.waljdbc.exceptions.SynchronousJournalException;
 import com.github.noctarius.waljdbc.spi.AbstractJournal;
@@ -28,13 +30,15 @@ public class DiskJournal<V>
 
     public static final int JOURNAL_RECORD_HEADER_SIZE = 17;
 
+    public static final int JOURNAL_OVERFLOW_OVERHEAD_SIZE = JOURNAL_FILE_HEADER_SIZE + JOURNAL_RECORD_HEADER_SIZE;
+
     public static final byte JOURNAL_FILE_TYPE_DEFAULT = 1;
 
     public static final byte JOURNAL_FILE_TYPE_OVERFLOW = 2;
 
     private static final Logger LOGGER = LoggerFactory.getLogger( DiskJournal.class );
 
-    private final AtomicReference<DiskJournalFile<V>> journalFile = new AtomicReference<>();
+    private final Deque<DiskJournalFile<V>> journalFiles = new ConcurrentLinkedDeque<>();
 
     private final JournalFlushedListener<V> listener;
 
@@ -54,7 +58,7 @@ public class DiskJournal<V>
             throw new IllegalArgumentException( "journalingPath is not a directory" );
         }
 
-        LOGGER.info( getName() + ": DiskJournal starting up in " + journalingPath.toFile().getAbsolutePath() + "..." );
+        LOGGER.info( "{}: DiskJournal starting up in {}...", getName(), journalingPath.toFile().getAbsolutePath() );
 
         boolean needsReplay = false;
         File path = journalingPath.toFile();
@@ -74,13 +78,13 @@ public class DiskJournal<V>
 
         if ( needsReplay )
         {
-            LOGGER.warn( getName() + ": Found old journals in journaling path, starting replay..." );
+            LOGGER.warn( "{}: Found old journals in journaling path, starting replay...", getName() );
             DiskJournalReplayer<V> replayer = new DiskJournalReplayer<>( this, listener );
             replayer.replay();
         }
 
         // Replay not required or succeed so start new journal
-        journalFile.set( buildJournalFile() );
+        journalFiles.push( buildJournalFile() );
     }
 
     @Override
@@ -95,30 +99,51 @@ public class DiskJournal<V>
     {
         try
         {
-            synchronized ( journalFile )
+            synchronized ( journalFiles )
             {
-                DiskJournalAppendResult result = journalFile.get().appendRecord( entry );
-                if ( result == DiskJournalAppendResult.APPEND_SUCCESSFUL )
+                DiskJournalFile<V> journalFile = journalFiles.peek();
+                DiskJournalEntryFacade<V> recordEntry = new DiskJournalEntryFacade<>( entry );
+                Tuple<DiskJournalAppendResult, JournalRecord<V>> result = journalFile.appendRecord( recordEntry );
+                if ( result.getValue1() == DiskJournalAppendResult.APPEND_SUCCESSFUL )
                 {
                     if ( listener != null )
                     {
-                        listener.flushed( entry );
+                        listener.flushed( result.getValue2() );
                     }
                 }
-                else if ( result == DiskJournalAppendResult.JOURNAL_OVERFLOW )
+                else if ( result.getValue1() == DiskJournalAppendResult.JOURNAL_OVERFLOW )
                 {
+                    LOGGER.debug( "Journal full, overflowing to next one..." );
+
                     // Close current journal file ...
-                    journalFile.get().close();
+                    journalFile.close();
 
                     // ... and start new journal ...
-                    journalFile.set( buildJournalFile() );
+                    journalFiles.push( buildJournalFile() );
 
                     // ... finally retry to write to journal
                     appendEntry( entry, listener );
                 }
-                else if ( result == DiskJournalAppendResult.JOURNAL_FULL_OVERFLOW )
+                else if ( result.getValue1() == DiskJournalAppendResult.JOURNAL_FULL_OVERFLOW )
                 {
-                    // TODO Full overflow
+                    LOGGER.debug( "Record dataset too large for normal journal, using overflow journal file" );
+
+                    // Close current journal file ...
+                    journalFile.close();
+
+                    // Calculate overflow filelength
+                    int length = recordEntry.cachedData.length + DiskJournal.JOURNAL_OVERFLOW_OVERHEAD_SIZE;
+
+                    // ... and start new journal ...
+                    journalFile = buildJournalFile( length, DiskJournal.JOURNAL_FILE_TYPE_OVERFLOW );
+                    journalFiles.push( journalFile );
+
+                    // ... finally retry to write to journal
+                    result = journalFile.appendRecord( recordEntry );
+                    if ( result.getValue1() != DiskJournalAppendResult.APPEND_SUCCESSFUL )
+                    {
+                        throw new SynchronousJournalException( "Overflow file could not be written" );
+                    }
                 }
             }
         }
@@ -141,7 +166,13 @@ public class DiskJournal<V>
     public void close()
         throws IOException
     {
-        journalFile.get().close();
+        synchronized ( journalFiles )
+        {
+            for ( DiskJournalFile<V> journalFile : journalFiles )
+            {
+                journalFile.close();
+            }
+        }
     }
 
     public Path getJournalingPath()
@@ -152,10 +183,16 @@ public class DiskJournal<V>
     private DiskJournalFile<V> buildJournalFile()
         throws IOException
     {
+        return buildJournalFile( getMaxLogFileSize(), DiskJournal.JOURNAL_FILE_TYPE_DEFAULT );
+    }
+
+    private DiskJournalFile<V> buildJournalFile( int maxLogFileSize, byte type )
+        throws IOException
+    {
         long logNumber = nextLogNumber();
         String filename = getNamingStrategy().generate( logNumber );
         File journalFile = new File( journalingPath.toFile(), filename );
-        return new DiskJournalFile<>( this, journalFile, logNumber );
+        return new DiskJournalFile<>( this, journalFile, logNumber, maxLogFileSize, type );
     }
 
 }

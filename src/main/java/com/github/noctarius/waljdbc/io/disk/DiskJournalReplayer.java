@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.file.Path;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
@@ -12,7 +11,7 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.github.noctarius.waljdbc.JournalEntry;
+import com.github.noctarius.waljdbc.JournalRecord;
 import com.github.noctarius.waljdbc.exceptions.ReplayCancellationException;
 import com.github.noctarius.waljdbc.spi.JournalEntryReader;
 import com.github.noctarius.waljdbc.spi.JournalFlushedListener;
@@ -54,18 +53,18 @@ class DiskJournalReplayer<V>
 
         // Iterate the list and search for holes in history
         long lastRecordId = -1;
-        JournalEntry<V> lastRecord = null;
+        JournalRecord<V> lastRecord = null;
         for ( DiskJournalRecord<V> record : records )
         {
             if ( lastRecordId != -1 && record.getRecordId() != lastRecordId + 1 )
             {
-                LOGGER.error( journal.getName() + ": There is a hole in history in journal " + lastRecordId + "->"
-                    + record.getRecordId() );
+                LOGGER.error( "{}: There is a hole in history in journal {}->{}", journal.getName(), lastRecordId,
+                              record.getRecordId() );
 
                 try
                 {
                     ReplayNotificationResult result =
-                        listener.replayNotifySuspiciousRecordId( journal, lastRecord, record.getJournalEntry() );
+                        listener.replayNotifySuspiciousRecordId( journal, lastRecord, record );
                     if ( result == ReplayNotificationResult.Except )
                     {
                         throw new ReplayCancellationException( "Replay of journal was aborted by callback" );
@@ -82,23 +81,25 @@ class DiskJournalReplayer<V>
                 }
             }
             lastRecordId = record.getRecordId();
-            lastRecord = record.getJournalEntry();
+            lastRecord = record;
         }
 
         for ( DiskJournalRecord<V> record : records )
         {
-            LOGGER.info( journal.getName() + ": Reannouncing journal entry " + record.getRecordId() );
+            LOGGER.info( "{}: Reannouncing journal entry  {}", journal.getName(), record.getRecordId() );
             try
             {
-                ReplayNotificationResult result = listener.replayRecordId( journal, record.getJournalEntry() );
+                ReplayNotificationResult result = listener.replayRecordId( journal, record );
                 if ( result == ReplayNotificationResult.Except )
                 {
                     throw new ReplayCancellationException( "Replay of journal was aborted by callback" );
                 }
                 else if ( result == ReplayNotificationResult.Terminate )
                 {
+                    journal.getRecordIdGenerator().notifyHighestJournalRecordId( record.getRecordId() );
                     break;
                 }
+                journal.getRecordIdGenerator().notifyHighestJournalRecordId( record.getRecordId() );
             }
             catch ( RuntimeException e )
             {
@@ -112,8 +113,8 @@ class DiskJournalReplayer<V>
         List<DiskJournalRecord<V>> records = new LinkedList<>();
         try ( RandomAccessFile raf = new RandomAccessFile( file.toFile(), "r" ) )
         {
-            JournalFileHeader header = readHeader( raf );
-            LOGGER.info( journal.getName() + ": Reading old journal file with logNumber " + header.getLogNumber() );
+            JournalFileHeader header = DiskJournalIOUtils.readHeader( raf );
+            LOGGER.info( "{}: Reading old journal file with logNumber {}", journal.getName(), header.getLogNumber() );
 
             int pos = header.getFirstDataOffset();
             while ( pos < raf.length() )
@@ -135,20 +136,19 @@ class DiskJournalReplayer<V>
                 // If both length values differ this record is broken
                 if ( startingLength != endingLength )
                 {
-                    LOGGER.debug( "pos=" + pos + ", startingLength=" + startingLength + ", endingLength="
-                        + endingLength );
-                    LOGGER.info( journal.getName() + ": Incomplete record in journal file with logNumber "
-                        + header.getLogNumber() );
+                    LOGGER.debug( "pos={}, startingLength={}, endingLength={}", pos, startingLength, endingLength );
+                    LOGGER.info( "{}: Incomplete record in journal file with logNumber {}", journal.getName(),
+                                 header.getLogNumber() );
                     break;
                 }
 
-                LOGGER.debug( journal.getName() + ": Found new record in logNumber " + header.getLogNumber() );
+                LOGGER.debug( "{}: Found new record in logNumber {}", journal.getName(), header.getLogNumber() );
 
                 // Read recordId
                 raf.seek( pos + 4 );
                 long recordId = raf.readLong();
 
-                LOGGER.debug( journal.getName() + ": Reading record " + recordId );
+                LOGGER.debug( "{}: Reading record {}", journal.getName(), recordId );
 
                 // Read information of the entry
                 byte type = raf.readByte();
@@ -168,25 +168,6 @@ class DiskJournalReplayer<V>
             // here!
         }
         return records;
-    }
-
-    private JournalFileHeader readHeader( RandomAccessFile raf )
-        throws IOException
-    {
-        // Read header and look for expected values
-        byte[] magicNumber = new byte[4];
-        raf.readFully( magicNumber );
-        if ( !Arrays.equals( magicNumber, JournalFileHeader.MAGIC_NUMBER ) )
-        {
-            throw new IllegalStateException( "Given file no legal journal" );
-        }
-
-        int version = raf.readInt();
-        int maxLogFileSize = raf.readInt();
-        long logFileNumber = raf.readLong();
-        byte type = raf.readByte();
-        int firstDataOffset = raf.readInt();
-        return new JournalFileHeader( version, maxLogFileSize, logFileNumber, type, firstDataOffset );
     }
 
 }
