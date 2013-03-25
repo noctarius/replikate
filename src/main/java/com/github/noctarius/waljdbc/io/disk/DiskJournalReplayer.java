@@ -14,7 +14,7 @@ import org.slf4j.LoggerFactory;
 import com.github.noctarius.waljdbc.JournalRecord;
 import com.github.noctarius.waljdbc.exceptions.ReplayCancellationException;
 import com.github.noctarius.waljdbc.spi.JournalEntryReader;
-import com.github.noctarius.waljdbc.spi.JournalFlushedListener;
+import com.github.noctarius.waljdbc.spi.JournalListener;
 import com.github.noctarius.waljdbc.spi.ReplayNotificationResult;
 
 class DiskJournalReplayer<V>
@@ -24,9 +24,9 @@ class DiskJournalReplayer<V>
 
     private final DiskJournal<V> journal;
 
-    private final JournalFlushedListener<V> listener;
+    private final JournalListener<V> listener;
 
-    public DiskJournalReplayer( DiskJournal<V> journal, JournalFlushedListener<V> listener )
+    public DiskJournalReplayer( DiskJournal<V> journal, JournalListener<V> listener )
     {
         this.journal = journal;
         this.listener = listener;
@@ -35,6 +35,7 @@ class DiskJournalReplayer<V>
     public void replay()
     {
         List<DiskJournalRecord<V>> records = new LinkedList<>();
+        List<DiskJournalFile<V>> diskJournalFiles = new LinkedList<>();
 
         File directory = journal.getJournalingPath().toFile();
         for ( File child : directory.listFiles() )
@@ -45,10 +46,13 @@ class DiskJournalReplayer<V>
             String filename = child.getName();
             if ( journal.getNamingStrategy().isJournal( filename ) )
             {
-                records.addAll( readForward( child.toPath() ) );
+                Tuple<DiskJournalFile<V>, List<DiskJournalRecord<V>>> result = readForward( child.toPath() );
+                diskJournalFiles.add( result.getValue1() );
+                records.addAll( result.getValue2() );
             }
         }
 
+        Collections.sort( diskJournalFiles );
         Collections.sort( records );
 
         // Iterate the list and search for holes in history
@@ -84,6 +88,12 @@ class DiskJournalReplayer<V>
             lastRecord = record;
         }
 
+        // Push all found journal files to DiskJournal
+        for ( DiskJournalFile<V> diskJournalFile : diskJournalFiles )
+        {
+            journal.pushJournalFileFromReplay( diskJournalFile );
+        }
+
         for ( DiskJournalRecord<V> record : records )
         {
             LOGGER.info( "{}: Reannouncing journal entry  {}", journal.getName(), record.getRecordId() );
@@ -108,12 +118,14 @@ class DiskJournalReplayer<V>
         }
     }
 
-    private List<DiskJournalRecord<V>> readForward( Path file )
+    private Tuple<DiskJournalFile<V>, List<DiskJournalRecord<V>>> readForward( Path file )
     {
+        DiskJournalFile<V> diskJournalFile = null;
         List<DiskJournalRecord<V>> records = new LinkedList<>();
         try ( RandomAccessFile raf = new RandomAccessFile( file.toFile(), "r" ) )
         {
             JournalFileHeader header = DiskJournalIOUtils.readHeader( raf );
+            diskJournalFile = new DiskJournalFile<>( raf, header, journal );
             LOGGER.info( "{}: Reading old journal file with logNumber {}", journal.getName(), header.getLogNumber() );
 
             int pos = header.getFirstDataOffset();
@@ -157,7 +169,8 @@ class DiskJournalReplayer<V>
                 raf.readFully( entryData );
 
                 JournalEntryReader<V> reader = journal.getReader();
-                records.add( new DiskJournalRecord<>( reader.readJournalEntry( recordId, type, entryData ), recordId ) );
+                records.add( new DiskJournalRecord<>( reader.readJournalEntry( recordId, type, entryData ), recordId,
+                                                      journal, diskJournalFile ) );
 
                 pos += startingLength;
             }
@@ -167,7 +180,7 @@ class DiskJournalReplayer<V>
             // Something went wrong but we want to execute as much journal entries as possible so we'll ignore that one
             // here!
         }
-        return records;
+        return new Tuple<>( diskJournalFile, records );
     }
 
 }

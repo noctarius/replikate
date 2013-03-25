@@ -16,6 +16,7 @@ import com.github.noctarius.waljdbc.JournalRecord;
 import com.github.noctarius.waljdbc.exceptions.JournalException;
 
 class DiskJournalFile<V>
+    implements Comparable<DiskJournalFile<V>>
 {
 
     private final Logger LOGGER = LoggerFactory.getLogger( DiskJournalFile.class );
@@ -52,6 +53,13 @@ class DiskJournalFile<V>
         this.journal = journal;
         this.raf = new RandomAccessFile( file, "rws" );
         this.header = DiskJournalIOUtils.createJournal( raf, buildHeader( maxLogFileSize, type, logNumber ) );
+    }
+
+    public DiskJournalFile( RandomAccessFile raf, JournalFileHeader header, DiskJournal<V> journal )
+    {
+        this.raf = raf;
+        this.header = header;
+        this.journal = journal;
     }
 
     public int getPosition()
@@ -101,7 +109,7 @@ class DiskJournalFile<V>
                 }
 
                 long recordId = journal.getRecordIdGenerator().nextRecordId();
-                DiskJournalRecord<V> record = new DiskJournalRecord<V>( entry.wrappedEntry, recordId );
+                DiskJournalRecord<V> record = new DiskJournalRecord<V>( entry.wrappedEntry, recordId, journal, this );
                 DiskJournalIOUtils.writeRecord( record, entryData, raf );
 
                 return new Tuple<>( DiskJournalAppendResult.APPEND_SUCCESSFUL, (JournalRecord<V>) record );
@@ -123,6 +131,12 @@ class DiskJournalFile<V>
     public JournalFileHeader getHeader()
     {
         return header;
+    }
+
+    @Override
+    public int compareTo( DiskJournalFile<V> o )
+    {
+        return Long.valueOf( header.getLogNumber() ).compareTo( o.getHeader().getLogNumber() );
     }
 
     private JournalFileHeader buildHeader( int maxLogFileSize, byte type, long logNumber )

@@ -5,7 +5,7 @@ import java.io.IOException;
 import com.github.noctarius.waljdbc.exceptions.JournalException;
 import com.github.noctarius.waljdbc.spi.JournalEntryReader;
 import com.github.noctarius.waljdbc.spi.JournalEntryWriter;
-import com.github.noctarius.waljdbc.spi.JournalFlushedListener;
+import com.github.noctarius.waljdbc.spi.JournalListener;
 import com.github.noctarius.waljdbc.spi.JournalNamingStrategy;
 import com.github.noctarius.waljdbc.spi.JournalRecordIdGenerator;
 
@@ -19,7 +19,7 @@ public interface Journal<V>
     void appendEntry( JournalEntry<V> entry )
         throws JournalException;
 
-    void appendEntry( JournalEntry<V> entry, JournalFlushedListener<V> listener );
+    void appendEntry( JournalEntry<V> entry, JournalListener<V> listener );
 
     long getLastRecordId();
 

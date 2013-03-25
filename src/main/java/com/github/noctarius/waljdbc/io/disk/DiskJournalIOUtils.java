@@ -91,7 +91,8 @@ abstract class DiskJournalIOUtils
         LOGGER.trace( "DiskJournalIOUtils::writeRecord took {}ns", ( System.nanoTime() - nanoSeconds ) );
     }
 
-    static <V> DiskJournalRecord<V> readRecord( JournalEntryReader<V> reader, RandomAccessFile raf )
+    static <V> DiskJournalRecord<V> readRecord( DiskJournal<V> journal, JournalEntryReader<V> reader,
+                                                RandomAccessFile raf )
         throws IOException
     {
         long pos = raf.getFilePointer();
@@ -107,7 +108,8 @@ abstract class DiskJournalIOUtils
             byte[] entryData = new byte[entryLength];
             raf.readFully( entryData );
 
-            return new DiskJournalRecord<>( reader.readJournalEntry( recordId, type, entryData ), recordId );
+            return new DiskJournalRecord<>( reader.readJournalEntry( recordId, type, entryData ), recordId, journal,
+                                            null );
         }
         catch ( IOException e )
         {

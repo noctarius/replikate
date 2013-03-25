@@ -5,7 +5,7 @@ import com.github.noctarius.waljdbc.JournalEntry;
 import com.github.noctarius.waljdbc.JournalRecord;
 import com.github.noctarius.waljdbc.exceptions.JournalException;
 
-public interface JournalFlushedListener<V>
+public interface JournalListener<V>
 {
 
     void flushed( JournalRecord<V> record );

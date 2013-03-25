@@ -23,7 +23,7 @@ import com.github.noctarius.waljdbc.exceptions.ReplayCancellationException;
 import com.github.noctarius.waljdbc.io.disk.DiskJournal;
 import com.github.noctarius.waljdbc.spi.JournalEntryReader;
 import com.github.noctarius.waljdbc.spi.JournalEntryWriter;
-import com.github.noctarius.waljdbc.spi.JournalFlushedListener;
+import com.github.noctarius.waljdbc.spi.JournalListener;
 import com.github.noctarius.waljdbc.spi.JournalNamingStrategy;
 import com.github.noctarius.waljdbc.spi.JournalRecordIdGenerator;
 import com.github.noctarius.waljdbc.spi.ReplayNotificationResult;
@@ -426,7 +426,7 @@ public class BasicDiskJournalTestCase
     }
 
     public static class FlushListener
-        implements JournalFlushedListener<TestRecord>
+        implements JournalListener<TestRecord>
     {
 
         @Override

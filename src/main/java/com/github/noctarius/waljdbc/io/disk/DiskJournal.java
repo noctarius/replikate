@@ -18,7 +18,7 @@ import com.github.noctarius.waljdbc.exceptions.SynchronousJournalException;
 import com.github.noctarius.waljdbc.spi.AbstractJournal;
 import com.github.noctarius.waljdbc.spi.JournalEntryReader;
 import com.github.noctarius.waljdbc.spi.JournalEntryWriter;
-import com.github.noctarius.waljdbc.spi.JournalFlushedListener;
+import com.github.noctarius.waljdbc.spi.JournalListener;
 import com.github.noctarius.waljdbc.spi.JournalNamingStrategy;
 import com.github.noctarius.waljdbc.spi.JournalRecordIdGenerator;
 
@@ -40,11 +40,11 @@ public class DiskJournal<V>
 
     private final Deque<DiskJournalFile<V>> journalFiles = new ConcurrentLinkedDeque<>();
 
-    private final JournalFlushedListener<V> listener;
+    private final JournalListener<V> listener;
 
     private final Path journalingPath;
 
-    public DiskJournal( String name, Path journalingPath, JournalFlushedListener<V> listener, int maxLogFileSize,
+    public DiskJournal( String name, Path journalingPath, JournalListener<V> listener, int maxLogFileSize,
                         JournalRecordIdGenerator recordIdGenerator, JournalEntryReader<V> reader,
                         JournalEntryWriter<V> writer, JournalNamingStrategy namingStrategy )
         throws IOException
@@ -95,7 +95,7 @@ public class DiskJournal<V>
     }
 
     @Override
-    public void appendEntry( JournalEntry<V> entry, JournalFlushedListener<V> listener )
+    public void appendEntry( JournalEntry<V> entry, JournalListener<V> listener )
     {
         try
         {
@@ -178,6 +178,19 @@ public class DiskJournal<V>
     public Path getJournalingPath()
     {
         return journalingPath;
+    }
+
+    void pushJournalFileFromReplay( DiskJournalFile<V> diskJournalFile )
+    {
+        synchronized ( journalFiles )
+        {
+            journalFiles.push( diskJournalFile );
+        }
+    }
+
+    void journalRecordCommitted( DiskJournalRecord<V> record, DiskJournalFile<V> journalFile )
+    {
+        // TODO: Implementation missing
     }
 
     private DiskJournalFile<V> buildJournalFile()

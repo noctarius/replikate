@@ -111,7 +111,8 @@ class DiskJournalBacktracker<V>
                     raf.readFully( entryData );
 
                     JournalEntryReader<V> reader = journal.getReader();
-                    return new DiskJournalRecord<>( reader.readJournalEntry( recordId, type, entryData ), recordId );
+                    return new DiskJournalRecord<>( reader.readJournalEntry( recordId, type, entryData ), recordId,
+                                                    journal, null );
                 }
 
                 pos += startingLength;
