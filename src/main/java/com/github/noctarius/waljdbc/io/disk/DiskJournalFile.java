@@ -133,10 +133,15 @@ class DiskJournalFile<V>
         return header;
     }
 
+    public long getLogNumber()
+    {
+        return header.getLogNumber();
+    }
+
     @Override
     public int compareTo( DiskJournalFile<V> o )
     {
-        return Long.valueOf( header.getLogNumber() ).compareTo( o.getHeader().getLogNumber() );
+        return Long.valueOf( header.getLogNumber() ).compareTo( o.getLogNumber() );
     }
 
     private DiskJournalFileHeader buildHeader( int maxLogFileSize, byte type, long logNumber )

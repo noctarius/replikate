@@ -82,4 +82,9 @@ public abstract class AbstractJournal<V>
         return maxLogFileSize;
     }
 
+    protected void setCurrentLogNumber( long logNumber )
+    {
+        this.logNumber.set( logNumber );
+    }
+
 }

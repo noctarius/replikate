@@ -185,6 +185,7 @@ public class DiskJournal<V>
         synchronized ( journalFiles )
         {
             journalFiles.push( diskJournalFile );
+            setCurrentLogNumber( diskJournalFile.getLogNumber() );
         }
     }
 
