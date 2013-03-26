@@ -144,6 +144,12 @@ public class DiskJournal<V>
                     {
                         throw new SynchronousJournalException( "Overflow file could not be written" );
                     }
+
+                    // Notify listeners about flushed to journal
+                    if ( listener != null )
+                    {
+                        listener.flushed( result.getValue2() );
+                    }
                 }
             }
         }
