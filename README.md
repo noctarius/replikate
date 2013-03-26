@@ -1,4 +1,4 @@
-wal-jdbc
+RepliKate
 ========
 
-Write Ahead Log Implementation on top of JDBC
+RepliKate is a generic WriteAheadLog / journaling implementation for Java
