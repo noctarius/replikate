@@ -48,7 +48,7 @@ class DiskJournalRecord<V>
     }
 
     @Override
-    public void notifyRecordCommitted()
+    public void notifyCommitted()
     {
         journal.journalRecordCommitted( this, journalFile );
     }
