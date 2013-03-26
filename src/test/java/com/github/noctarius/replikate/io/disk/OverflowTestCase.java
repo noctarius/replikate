@@ -14,13 +14,13 @@ import org.junit.Test;
 
 import com.github.noctarius.replikate.Journal;
 import com.github.noctarius.replikate.JournalEntry;
+import com.github.noctarius.replikate.JournalListener;
 import com.github.noctarius.replikate.JournalRecord;
 import com.github.noctarius.replikate.SimpleJournalEntry;
 import com.github.noctarius.replikate.exceptions.JournalException;
 import com.github.noctarius.replikate.io.disk.BasicDiskJournalTestCase.NamingStrategy;
 import com.github.noctarius.replikate.spi.JournalEntryReader;
 import com.github.noctarius.replikate.spi.JournalEntryWriter;
-import com.github.noctarius.replikate.spi.JournalListener;
 import com.github.noctarius.replikate.spi.JournalRecordIdGenerator;
 import com.github.noctarius.replikate.spi.ReplayNotificationResult;
 
@@ -200,13 +200,13 @@ public class OverflowTestCase
     {
 
         @Override
-        public void onFlushed( JournalRecord<byte[]> record )
+        public void onSync( JournalRecord<byte[]> record )
         {
             System.out.println( "flushed: " + record );
         }
 
         @Override
-        public void onFailed( JournalEntry<byte[]> entry, JournalException cause )
+        public void onFailure( JournalEntry<byte[]> entry, JournalException cause )
         {
             System.out.println( "failed: " + entry );
         }

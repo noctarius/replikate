@@ -1,16 +1,14 @@
-package com.github.noctarius.replikate.spi;
+package com.github.noctarius.replikate;
 
-import com.github.noctarius.replikate.Journal;
-import com.github.noctarius.replikate.JournalEntry;
-import com.github.noctarius.replikate.JournalRecord;
 import com.github.noctarius.replikate.exceptions.JournalException;
+import com.github.noctarius.replikate.spi.ReplayNotificationResult;
 
 public interface JournalListener<V>
 {
 
-    void onFlushed( JournalRecord<V> record );
+    void onSync( JournalRecord<V> record );
 
-    void onFailed( JournalEntry<V> entry, JournalException cause );
+    void onFailure( JournalEntry<V> entry, JournalException cause );
 
     /**
      * This callback method is called when during journal replaying a missing recordId or other suspicious events arise.<br>

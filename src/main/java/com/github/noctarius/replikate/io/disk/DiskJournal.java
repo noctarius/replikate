@@ -12,14 +12,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.github.noctarius.replikate.JournalEntry;
+import com.github.noctarius.replikate.JournalListener;
+import com.github.noctarius.replikate.JournalNamingStrategy;
 import com.github.noctarius.replikate.JournalRecord;
 import com.github.noctarius.replikate.exceptions.JournalException;
 import com.github.noctarius.replikate.exceptions.SynchronousJournalException;
 import com.github.noctarius.replikate.spi.AbstractJournal;
 import com.github.noctarius.replikate.spi.JournalEntryReader;
 import com.github.noctarius.replikate.spi.JournalEntryWriter;
-import com.github.noctarius.replikate.spi.JournalListener;
-import com.github.noctarius.replikate.spi.JournalNamingStrategy;
 import com.github.noctarius.replikate.spi.JournalRecordIdGenerator;
 
 public class DiskJournal<V>
@@ -108,7 +108,7 @@ public class DiskJournal<V>
                 {
                     if ( listener != null )
                     {
-                        listener.onFlushed( result.getValue2() );
+                        listener.onSync( result.getValue2() );
                     }
                 }
                 else if ( result.getValue1() == DiskJournalAppendResult.JOURNAL_OVERFLOW )
@@ -148,7 +148,7 @@ public class DiskJournal<V>
                     // Notify listeners about flushed to journal
                     if ( listener != null )
                     {
-                        listener.onFlushed( result.getValue2() );
+                        listener.onSync( result.getValue2() );
                     }
                 }
             }
@@ -157,7 +157,7 @@ public class DiskJournal<V>
         {
             if ( listener != null )
             {
-                listener.onFailed( entry, new SynchronousJournalException( "Failed to persist journal entry", e ) );
+                listener.onFailure( entry, new SynchronousJournalException( "Failed to persist journal entry", e ) );
             }
         }
     }

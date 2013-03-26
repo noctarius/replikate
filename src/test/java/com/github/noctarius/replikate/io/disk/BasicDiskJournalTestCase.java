@@ -16,14 +16,14 @@ import org.junit.Test;
 
 import com.github.noctarius.replikate.Journal;
 import com.github.noctarius.replikate.JournalEntry;
+import com.github.noctarius.replikate.JournalListener;
+import com.github.noctarius.replikate.JournalNamingStrategy;
 import com.github.noctarius.replikate.JournalRecord;
 import com.github.noctarius.replikate.SimpleJournalEntry;
 import com.github.noctarius.replikate.exceptions.JournalException;
 import com.github.noctarius.replikate.exceptions.ReplayCancellationException;
 import com.github.noctarius.replikate.spi.JournalEntryReader;
 import com.github.noctarius.replikate.spi.JournalEntryWriter;
-import com.github.noctarius.replikate.spi.JournalListener;
-import com.github.noctarius.replikate.spi.JournalNamingStrategy;
 import com.github.noctarius.replikate.spi.JournalRecordIdGenerator;
 import com.github.noctarius.replikate.spi.ReplayNotificationResult;
 
@@ -429,13 +429,13 @@ public class BasicDiskJournalTestCase
     {
 
         @Override
-        public void onFlushed( JournalRecord<TestRecord> record )
+        public void onSync( JournalRecord<TestRecord> record )
         {
             System.out.println( "flushed: " + record );
         }
 
         @Override
-        public void onFailed( JournalEntry<TestRecord> entry, JournalException cause )
+        public void onFailure( JournalEntry<TestRecord> entry, JournalException cause )
         {
             System.out.println( "failed: " + entry );
         }

@@ -3,6 +3,7 @@ package com.github.noctarius.replikate.spi;
 import java.util.concurrent.atomic.AtomicLong;
 
 import com.github.noctarius.replikate.Journal;
+import com.github.noctarius.replikate.JournalNamingStrategy;
 
 public abstract class AbstractJournal<V>
     implements Journal<V>

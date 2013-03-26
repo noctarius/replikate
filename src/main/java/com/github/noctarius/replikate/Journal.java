@@ -5,8 +5,6 @@ import java.io.IOException;
 import com.github.noctarius.replikate.exceptions.JournalException;
 import com.github.noctarius.replikate.spi.JournalEntryReader;
 import com.github.noctarius.replikate.spi.JournalEntryWriter;
-import com.github.noctarius.replikate.spi.JournalListener;
-import com.github.noctarius.replikate.spi.JournalNamingStrategy;
 import com.github.noctarius.replikate.spi.JournalRecordIdGenerator;
 
 public interface Journal<V>

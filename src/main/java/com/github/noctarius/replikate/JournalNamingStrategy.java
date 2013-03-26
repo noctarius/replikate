@@ -1,4 +1,4 @@
-package com.github.noctarius.replikate.spi;
+package com.github.noctarius.replikate;
 
 public interface JournalNamingStrategy
 {
