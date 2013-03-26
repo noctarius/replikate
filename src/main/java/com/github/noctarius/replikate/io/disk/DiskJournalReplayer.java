@@ -68,7 +68,7 @@ class DiskJournalReplayer<V>
                 try
                 {
                     ReplayNotificationResult result =
-                        listener.replayNotifySuspiciousRecordId( journal, lastRecord, record );
+                        listener.onReplaySuspiciousRecordId( journal, lastRecord, record );
                     if ( result == ReplayNotificationResult.Except )
                     {
                         throw new ReplayCancellationException( "Replay of journal was aborted by callback" );
@@ -99,7 +99,7 @@ class DiskJournalReplayer<V>
             LOGGER.info( "{}: Reannouncing journal entry  {}", journal.getName(), record.getRecordId() );
             try
             {
-                ReplayNotificationResult result = listener.replayRecordId( journal, record );
+                ReplayNotificationResult result = listener.onReplayRecordId( journal, record );
                 if ( result == ReplayNotificationResult.Except )
                 {
                     throw new ReplayCancellationException( "Replay of journal was aborted by callback" );

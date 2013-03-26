@@ -429,19 +429,19 @@ public class BasicDiskJournalTestCase
     {
 
         @Override
-        public void flushed( JournalRecord<TestRecord> record )
+        public void onFlushed( JournalRecord<TestRecord> record )
         {
             System.out.println( "flushed: " + record );
         }
 
         @Override
-        public void failed( JournalEntry<TestRecord> entry, JournalException cause )
+        public void onFailed( JournalEntry<TestRecord> entry, JournalException cause )
         {
             System.out.println( "failed: " + entry );
         }
 
         @Override
-        public ReplayNotificationResult replayNotifySuspiciousRecordId( Journal<TestRecord> journal,
+        public ReplayNotificationResult onReplaySuspiciousRecordId( Journal<TestRecord> journal,
                                                                         JournalRecord<TestRecord> lastRecord,
                                                                         JournalRecord<TestRecord> nextRecord )
         {
@@ -449,7 +449,7 @@ public class BasicDiskJournalTestCase
         }
 
         @Override
-        public ReplayNotificationResult replayRecordId( Journal<TestRecord> journal, JournalRecord<TestRecord> record )
+        public ReplayNotificationResult onReplayRecordId( Journal<TestRecord> journal, JournalRecord<TestRecord> record )
         {
             return ReplayNotificationResult.Continue;
         }
@@ -477,7 +477,7 @@ public class BasicDiskJournalTestCase
         }
 
         @Override
-        public ReplayNotificationResult replayNotifySuspiciousRecordId( Journal<TestRecord> journal,
+        public ReplayNotificationResult onReplaySuspiciousRecordId( Journal<TestRecord> journal,
                                                                         JournalRecord<TestRecord> lastRecord,
                                                                         JournalRecord<TestRecord> nextRecord )
         {
@@ -485,11 +485,11 @@ public class BasicDiskJournalTestCase
         }
 
         @Override
-        public ReplayNotificationResult replayRecordId( Journal<TestRecord> journal, JournalRecord<TestRecord> record )
+        public ReplayNotificationResult onReplayRecordId( Journal<TestRecord> journal, JournalRecord<TestRecord> record )
         {
             records.add( record );
             count++;
-            return super.replayRecordId( journal, record );
+            return super.onReplayRecordId( journal, record );
         }
 
         public int getCount()

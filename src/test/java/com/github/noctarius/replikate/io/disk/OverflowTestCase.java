@@ -200,19 +200,19 @@ public class OverflowTestCase
     {
 
         @Override
-        public void flushed( JournalRecord<byte[]> record )
+        public void onFlushed( JournalRecord<byte[]> record )
         {
             System.out.println( "flushed: " + record );
         }
 
         @Override
-        public void failed( JournalEntry<byte[]> entry, JournalException cause )
+        public void onFailed( JournalEntry<byte[]> entry, JournalException cause )
         {
             System.out.println( "failed: " + entry );
         }
 
         @Override
-        public ReplayNotificationResult replayNotifySuspiciousRecordId( Journal<byte[]> journal,
+        public ReplayNotificationResult onReplaySuspiciousRecordId( Journal<byte[]> journal,
                                                                         JournalRecord<byte[]> lastRecord,
                                                                         JournalRecord<byte[]> nextRecord )
         {
@@ -220,7 +220,7 @@ public class OverflowTestCase
         }
 
         @Override
-        public ReplayNotificationResult replayRecordId( Journal<byte[]> journal, JournalRecord<byte[]> record )
+        public ReplayNotificationResult onReplayRecordId( Journal<byte[]> journal, JournalRecord<byte[]> record )
         {
             return ReplayNotificationResult.Continue;
         }
@@ -274,7 +274,7 @@ public class OverflowTestCase
         }
 
         @Override
-        public ReplayNotificationResult replayNotifySuspiciousRecordId( Journal<byte[]> journal,
+        public ReplayNotificationResult onReplaySuspiciousRecordId( Journal<byte[]> journal,
                                                                         JournalRecord<byte[]> lastRecord,
                                                                         JournalRecord<byte[]> nextRecord )
         {
@@ -282,11 +282,11 @@ public class OverflowTestCase
         }
 
         @Override
-        public ReplayNotificationResult replayRecordId( Journal<byte[]> journal, JournalRecord<byte[]> record )
+        public ReplayNotificationResult onReplayRecordId( Journal<byte[]> journal, JournalRecord<byte[]> record )
         {
             records.add( record );
             count++;
-            return super.replayRecordId( journal, record );
+            return super.onReplayRecordId( journal, record );
         }
 
         public int getCount()

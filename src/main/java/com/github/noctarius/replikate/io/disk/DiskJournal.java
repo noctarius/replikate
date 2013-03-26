@@ -108,7 +108,7 @@ public class DiskJournal<V>
                 {
                     if ( listener != null )
                     {
-                        listener.flushed( result.getValue2() );
+                        listener.onFlushed( result.getValue2() );
                     }
                 }
                 else if ( result.getValue1() == DiskJournalAppendResult.JOURNAL_OVERFLOW )
@@ -148,7 +148,7 @@ public class DiskJournal<V>
                     // Notify listeners about flushed to journal
                     if ( listener != null )
                     {
-                        listener.flushed( result.getValue2() );
+                        listener.onFlushed( result.getValue2() );
                     }
                 }
             }
@@ -157,7 +157,7 @@ public class DiskJournal<V>
         {
             if ( listener != null )
             {
-                listener.failed( entry, new SynchronousJournalException( "Failed to persist journal entry", e ) );
+                listener.onFailed( entry, new SynchronousJournalException( "Failed to persist journal entry", e ) );
             }
         }
     }

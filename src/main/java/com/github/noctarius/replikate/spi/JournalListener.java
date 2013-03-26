@@ -8,9 +8,9 @@ import com.github.noctarius.replikate.exceptions.JournalException;
 public interface JournalListener<V>
 {
 
-    void flushed( JournalRecord<V> record );
+    void onFlushed( JournalRecord<V> record );
 
-    void failed( JournalEntry<V> entry, JournalException cause );
+    void onFailed( JournalEntry<V> entry, JournalException cause );
 
     /**
      * This callback method is called when during journal replaying a missing recordId or other suspicious events arise.<br>
@@ -30,7 +30,7 @@ public interface JournalListener<V>
      * @param currentRecord The currently read journal record
      * @return Further execution behavior
      */
-    ReplayNotificationResult replayNotifySuspiciousRecordId( Journal<V> journal, JournalRecord<V> lastRecord,
+    ReplayNotificationResult onReplaySuspiciousRecordId( Journal<V> journal, JournalRecord<V> lastRecord,
                                                              JournalRecord<V> currentRecord );
 
     /**
@@ -48,6 +48,6 @@ public interface JournalListener<V>
      * @param record The currently read journal record
      * @return Further execution behavior
      */
-    ReplayNotificationResult replayRecordId( Journal<V> journal, JournalRecord<V> record );
+    ReplayNotificationResult onReplayRecordId( Journal<V> journal, JournalRecord<V> record );
 
 }
