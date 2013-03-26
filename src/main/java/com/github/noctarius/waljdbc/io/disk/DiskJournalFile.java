@@ -25,7 +25,7 @@ class DiskJournalFile<V>
 
     private final Lock appendLock = new ReentrantLock();
 
-    private final JournalFileHeader header;
+    private final DiskJournalFileHeader header;
 
     private final DiskJournal<V> journal;
 
@@ -55,7 +55,7 @@ class DiskJournalFile<V>
         this.header = DiskJournalIOUtils.createJournal( raf, buildHeader( maxLogFileSize, type, logNumber ) );
     }
 
-    public DiskJournalFile( RandomAccessFile raf, JournalFileHeader header, DiskJournal<V> journal )
+    public DiskJournalFile( RandomAccessFile raf, DiskJournalFileHeader header, DiskJournal<V> journal )
     {
         this.raf = raf;
         this.header = header;
@@ -128,7 +128,7 @@ class DiskJournalFile<V>
         raf.close();
     }
 
-    public JournalFileHeader getHeader()
+    public DiskJournalFileHeader getHeader()
     {
         return header;
     }
@@ -139,9 +139,9 @@ class DiskJournalFile<V>
         return Long.valueOf( header.getLogNumber() ).compareTo( o.getHeader().getLogNumber() );
     }
 
-    private JournalFileHeader buildHeader( int maxLogFileSize, byte type, long logNumber )
+    private DiskJournalFileHeader buildHeader( int maxLogFileSize, byte type, long logNumber )
     {
-        return new JournalFileHeader( Journal.JOURNAL_VERSION, maxLogFileSize, logNumber, type );
+        return new DiskJournalFileHeader( Journal.JOURNAL_VERSION, maxLogFileSize, logNumber, type );
     }
 
 }

@@ -1,6 +1,6 @@
 package com.github.noctarius.waljdbc.io.disk;
 
-class JournalFileHeader
+class DiskJournalFileHeader
 {
 
     static final byte[] MAGIC_NUMBER = { (byte) 0xFE, (byte) 0xEE, (byte) 0xEE, (byte) 0xEF };
@@ -15,12 +15,12 @@ class JournalFileHeader
 
     private final int firstDataOffset;
 
-    JournalFileHeader( int version, int maxLogFileSize, long logFileNumber, byte type )
+    DiskJournalFileHeader( int version, int maxLogFileSize, long logFileNumber, byte type )
     {
         this( version, maxLogFileSize, logFileNumber, type, DiskJournal.JOURNAL_FILE_HEADER_SIZE );
     }
 
-    JournalFileHeader( int version, int maxLogFileSize, long logFileNumber, byte type, int firstDataOffset )
+    DiskJournalFileHeader( int version, int maxLogFileSize, long logFileNumber, byte type, int firstDataOffset )
     {
         this.version = version;
         this.maxLogFileSize = maxLogFileSize;

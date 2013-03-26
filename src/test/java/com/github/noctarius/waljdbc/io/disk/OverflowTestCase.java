@@ -136,7 +136,7 @@ public class OverflowTestCase
 
         // "journal-2" needs to be overflow file
         RandomAccessFile raf = new RandomAccessFile( new File( path, "journal-2" ), "r" );
-        JournalFileHeader header = DiskJournalIOUtils.readHeader( raf );
+        DiskJournalFileHeader header = DiskJournalIOUtils.readHeader( raf );
         assertEquals( DiskJournal.JOURNAL_FILE_TYPE_OVERFLOW, header.getType() );
         raf.close();
 

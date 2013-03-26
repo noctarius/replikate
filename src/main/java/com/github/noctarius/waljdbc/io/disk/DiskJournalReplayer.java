@@ -124,7 +124,7 @@ class DiskJournalReplayer<V>
         List<DiskJournalRecord<V>> records = new LinkedList<>();
         try ( RandomAccessFile raf = new RandomAccessFile( file.toFile(), "r" ) )
         {
-            JournalFileHeader header = DiskJournalIOUtils.readHeader( raf );
+            DiskJournalFileHeader header = DiskJournalIOUtils.readHeader( raf );
             diskJournalFile = new DiskJournalFile<>( raf, header, journal );
             LOGGER.info( "{}: Reading old journal file with logNumber {}", journal.getName(), header.getLogNumber() );
 

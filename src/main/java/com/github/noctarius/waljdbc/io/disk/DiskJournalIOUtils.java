@@ -20,7 +20,7 @@ abstract class DiskJournalIOUtils
     {
     }
 
-    static JournalFileHeader createJournal( RandomAccessFile raf, JournalFileHeader header )
+    static DiskJournalFileHeader createJournal( RandomAccessFile raf, DiskJournalFileHeader header )
         throws IOException
     {
         long nanoSeconds = System.nanoTime();
@@ -34,7 +34,7 @@ abstract class DiskJournalIOUtils
         try ( ByteArrayBufferOutputStream buffer = new ByteArrayBufferOutputStream( prefiller );
                         DataOutputStream stream = new DataOutputStream( buffer ) )
         {
-            stream.write( JournalFileHeader.MAGIC_NUMBER );
+            stream.write( DiskJournalFileHeader.MAGIC_NUMBER );
             stream.writeInt( header.getVersion() );
             stream.writeInt( header.getMaxLogFileSize() );
             stream.writeLong( header.getLogNumber() );
@@ -50,13 +50,13 @@ abstract class DiskJournalIOUtils
         return header;
     }
 
-    static JournalFileHeader readHeader( RandomAccessFile raf )
+    static DiskJournalFileHeader readHeader( RandomAccessFile raf )
         throws IOException
     {
         // Read header and look for expected values
         byte[] magicNumber = new byte[4];
         raf.readFully( magicNumber );
-        if ( !Arrays.equals( magicNumber, JournalFileHeader.MAGIC_NUMBER ) )
+        if ( !Arrays.equals( magicNumber, DiskJournalFileHeader.MAGIC_NUMBER ) )
         {
             throw new IllegalStateException( "Given file no legal journal" );
         }
@@ -66,7 +66,7 @@ abstract class DiskJournalIOUtils
         long logFileNumber = raf.readLong();
         byte type = raf.readByte();
         int firstDataOffset = raf.readInt();
-        return new JournalFileHeader( version, maxLogFileSize, logFileNumber, type, firstDataOffset );
+        return new DiskJournalFileHeader( version, maxLogFileSize, logFileNumber, type, firstDataOffset );
     }
 
     static <V> void writeRecord( DiskJournalRecord<V> record, byte[] entryData, RandomAccessFile raf )
