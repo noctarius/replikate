@@ -179,7 +179,6 @@ public class OverflowTestCase
         {
             return new SimpleJournalEntry<byte[]>( data, type );
         }
-
     }
 
     public static class RecordWriter
@@ -193,6 +192,17 @@ public class OverflowTestCase
             out.write( entry.getValue() );
         }
 
+        @Override
+        public int estimateRecordSize( JournalEntry<byte[]> entry )
+        {
+            return entry.getValue() == null ? 0 : entry.getValue().length;
+        }
+
+        @Override
+        public boolean isRecordSizeEstimatable()
+        {
+            return true;
+        }
     }
 
     public static class FlushListener
@@ -213,8 +223,8 @@ public class OverflowTestCase
 
         @Override
         public ReplayNotificationResult onReplaySuspiciousRecordId( Journal<byte[]> journal,
-                                                                        JournalRecord<byte[]> lastRecord,
-                                                                        JournalRecord<byte[]> nextRecord )
+                                                                    JournalRecord<byte[]> lastRecord,
+                                                                    JournalRecord<byte[]> nextRecord )
         {
             return ReplayNotificationResult.Continue;
         }
@@ -224,7 +234,6 @@ public class OverflowTestCase
         {
             return ReplayNotificationResult.Continue;
         }
-
     }
 
     public static class RecordIdGenerator
@@ -250,7 +259,6 @@ public class OverflowTestCase
         {
             this.recordId = recordId;
         }
-
     }
 
     public static class CountingFlushListener
@@ -275,8 +283,8 @@ public class OverflowTestCase
 
         @Override
         public ReplayNotificationResult onReplaySuspiciousRecordId( Journal<byte[]> journal,
-                                                                        JournalRecord<byte[]> lastRecord,
-                                                                        JournalRecord<byte[]> nextRecord )
+                                                                    JournalRecord<byte[]> lastRecord,
+                                                                    JournalRecord<byte[]> nextRecord )
         {
             return missingRecordIdResult;
         }
@@ -298,7 +306,6 @@ public class OverflowTestCase
         {
             return records.get( index ).getJournalEntry();
         }
-
     }
 
 }
