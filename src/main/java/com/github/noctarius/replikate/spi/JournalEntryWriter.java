@@ -11,4 +11,8 @@ public interface JournalEntryWriter<V>
     void writeJournalEntry( JournalEntry<V> entry, DataOutput out )
         throws IOException;
 
+    int estimateRecordSize( JournalEntry<V> entry );
+
+    boolean isRecordSizeEstimatable();
+
 }

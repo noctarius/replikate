@@ -335,7 +335,6 @@ public class BasicDiskJournalTestCase
                 return false;
             return true;
         }
-
     }
 
     public static class TestRecordReader
@@ -357,7 +356,6 @@ public class BasicDiskJournalTestCase
                 return new SimpleJournalEntry<BasicDiskJournalTestCase.TestRecord>( record, type );
             }
         }
-
     }
 
     public static class TestRecordWriter
@@ -371,6 +369,18 @@ public class BasicDiskJournalTestCase
             TestRecord record = entry.getValue();
             out.writeInt( record.value );
             out.writeUTF( record.name );
+        }
+
+        @Override
+        public int estimateRecordSize( JournalEntry<TestRecord> entry )
+        {
+            return 0;
+        }
+
+        @Override
+        public boolean isRecordSizeEstimatable()
+        {
+            return false;
         }
     }
 
@@ -397,7 +407,6 @@ public class BasicDiskJournalTestCase
         {
             this.recordId = recordId;
         }
-
     }
 
     public static class NamingStrategy
@@ -421,7 +430,6 @@ public class BasicDiskJournalTestCase
         {
             return Integer.parseInt( name.substring( name.indexOf( '-' ) + 1 ) );
         }
-
     }
 
     public static class FlushListener
@@ -442,8 +450,8 @@ public class BasicDiskJournalTestCase
 
         @Override
         public ReplayNotificationResult onReplaySuspiciousRecordId( Journal<TestRecord> journal,
-                                                                        JournalRecord<TestRecord> lastRecord,
-                                                                        JournalRecord<TestRecord> nextRecord )
+                                                                    JournalRecord<TestRecord> lastRecord,
+                                                                    JournalRecord<TestRecord> nextRecord )
         {
             return ReplayNotificationResult.Continue;
         }
@@ -453,7 +461,6 @@ public class BasicDiskJournalTestCase
         {
             return ReplayNotificationResult.Continue;
         }
-
     }
 
     public static class CountingFlushListener
@@ -478,8 +485,8 @@ public class BasicDiskJournalTestCase
 
         @Override
         public ReplayNotificationResult onReplaySuspiciousRecordId( Journal<TestRecord> journal,
-                                                                        JournalRecord<TestRecord> lastRecord,
-                                                                        JournalRecord<TestRecord> nextRecord )
+                                                                    JournalRecord<TestRecord> lastRecord,
+                                                                    JournalRecord<TestRecord> nextRecord )
         {
             return missingRecordIdResult;
         }
@@ -501,7 +508,6 @@ public class BasicDiskJournalTestCase
         {
             return records.get( index ).getJournalEntry();
         }
-
     }
 
 }
