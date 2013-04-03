@@ -11,6 +11,7 @@ import java.util.concurrent.ConcurrentLinkedDeque;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.github.noctarius.replikate.JournalBatch;
 import com.github.noctarius.replikate.JournalEntry;
 import com.github.noctarius.replikate.JournalListener;
 import com.github.noctarius.replikate.JournalNamingStrategy;
@@ -160,6 +161,19 @@ public class DiskJournal<V>
                 listener.onFailure( entry, new SynchronousJournalException( "Failed to persist journal entry", e ) );
             }
         }
+    }
+
+    @Override
+    public JournalBatch<V> startBatchProcess()
+    {
+        return startBatchProcess( listener );
+    }
+
+    @Override
+    public JournalBatch<V> startBatchProcess( JournalListener<V> listener )
+    {
+        // TODO Auto-generated method stub
+        return null;
     }
 
     @Override

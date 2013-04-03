@@ -19,6 +19,10 @@ public interface Journal<V>
 
     void appendEntry( JournalEntry<V> entry, JournalListener<V> listener );
 
+    JournalBatch<V> startBatchProcess();
+
+    JournalBatch<V> startBatchProcess( JournalListener<V> listener );
+
     long getLastRecordId();
 
     long nextLogNumber();
