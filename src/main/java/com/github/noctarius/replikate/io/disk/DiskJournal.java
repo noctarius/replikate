@@ -276,7 +276,7 @@ public class DiskJournal<V>
                 {
                     if ( listener != null )
                     {
-                        listener.onCommit( result.getValue2() );
+                        onCommit( listener, result.getValue2() );
                     }
                 }
                 else if ( result.getValue1() == DiskJournalAppendResult.JOURNAL_OVERFLOW )
@@ -316,7 +316,7 @@ public class DiskJournal<V>
                     // Notify listeners about flushed to journal
                     if ( listener != null )
                     {
-                        listener.onCommit( result.getValue2() );
+                        onCommit( listener, result.getValue2() );
                     }
                 }
             }
@@ -325,7 +325,7 @@ public class DiskJournal<V>
         {
             if ( listener != null )
             {
-                listener.onFailure( entry, new SynchronousJournalException( "Failed to persist journal entry", e ) );
+                onFailure( listener, entry, new SynchronousJournalException( "Failed to persist journal entry", e ) );
             }
         }
     }
@@ -453,9 +453,8 @@ public class DiskJournal<V>
                 {
                     if ( listener != null )
                     {
-                        listener.onFailure( journalBatch,
-                                            new SynchronousJournalException( "Failed to persist journal batch process",
-                                                                             e ) );
+                        onFailure( listener, journalBatch,
+                                   new SynchronousJournalException( "Failed to persist journal batch process", e ) );
                     }
 
                     // Rollback the journal file
@@ -508,7 +507,7 @@ public class DiskJournal<V>
             // ... and if non of them failed just announce them as committed
             for ( JournalRecord<V> record : result.getValue2() )
             {
-                listener.onCommit( record );
+                onCommit( listener, record );
             }
         }
     }
