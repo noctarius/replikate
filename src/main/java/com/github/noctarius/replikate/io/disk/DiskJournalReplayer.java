@@ -67,8 +67,7 @@ class DiskJournalReplayer<V>
 
                 try
                 {
-                    ReplayNotificationResult result =
-                        listener.onReplaySuspiciousRecordId( journal, lastRecord, record );
+                    ReplayNotificationResult result = listener.onReplaySuspiciousRecordId( journal, lastRecord, record );
                     if ( result == ReplayNotificationResult.Except )
                     {
                         throw new ReplayCancellationException( "Replay of journal was aborted by callback" );
@@ -125,7 +124,7 @@ class DiskJournalReplayer<V>
         try ( RandomAccessFile raf = new RandomAccessFile( file.toFile(), "r" ) )
         {
             DiskJournalFileHeader header = DiskJournalIOUtils.readHeader( raf );
-            diskJournalFile = new DiskJournalFile<>( raf, header, journal );
+            diskJournalFile = new DiskJournalFile<>( raf, file.toFile().getName(), header, journal );
             LOGGER.info( "{}: Reading old journal file with logNumber {}", journal.getName(), header.getLogNumber() );
 
             int pos = header.getFirstDataOffset();
@@ -169,8 +168,7 @@ class DiskJournalReplayer<V>
                 raf.readFully( entryData );
 
                 JournalEntryReader<V> reader = journal.getReader();
-                records.add( new DiskJournalRecord<>( reader.readJournalEntry( recordId, type, entryData ), recordId,
-                                                      journal, diskJournalFile ) );
+                records.add( new DiskJournalRecord<>( reader.readJournalEntry( recordId, type, entryData ), recordId ) );
 
                 pos += startingLength;
             }
@@ -182,5 +180,4 @@ class DiskJournalReplayer<V>
         }
         return new Tuple<>( diskJournalFile, records );
     }
-
 }

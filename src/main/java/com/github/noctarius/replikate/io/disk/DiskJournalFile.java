@@ -29,6 +29,8 @@ class DiskJournalFile<V>
 
     private final DiskJournal<V> journal;
 
+    private final String fileName;
+
     public DiskJournalFile( DiskJournal<V> journal, File file, long logNumber, int maxLogFileSize )
         throws IOException
     {
@@ -51,15 +53,22 @@ class DiskJournalFile<V>
         }
 
         this.journal = journal;
+        this.fileName = file.getName();
         this.raf = new RandomAccessFile( file, "rws" );
         this.header = DiskJournalIOUtils.createJournal( raf, buildHeader( maxLogFileSize, type, logNumber ) );
     }
 
-    public DiskJournalFile( RandomAccessFile raf, DiskJournalFileHeader header, DiskJournal<V> journal )
+    public DiskJournalFile( RandomAccessFile raf, String fileName, DiskJournalFileHeader header, DiskJournal<V> journal )
     {
         this.raf = raf;
+        this.fileName = fileName;
         this.header = header;
         this.journal = journal;
+    }
+
+    public String getFileName()
+    {
+        return fileName;
     }
 
     public int getPosition()
@@ -109,7 +118,7 @@ class DiskJournalFile<V>
                 }
 
                 long recordId = journal.getRecordIdGenerator().nextRecordId();
-                DiskJournalRecord<V> record = new DiskJournalRecord<V>( entry.wrappedEntry, recordId, journal, this );
+                DiskJournalRecord<V> record = new DiskJournalRecord<V>( entry.wrappedEntry, recordId );
                 DiskJournalIOUtils.writeRecord( record, entryData, raf );
 
                 return new Tuple<>( DiskJournalAppendResult.APPEND_SUCCESSFUL, (JournalRecord<V>) record );

@@ -10,6 +10,4 @@ public interface JournalRecord<V>
 
     JournalEntry<V> getJournalEntry();
 
-    void notifyCommitted();
-
 }

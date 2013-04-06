@@ -6,6 +6,8 @@ import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.util.Deque;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.concurrent.ConcurrentLinkedDeque;
 
 import org.slf4j.Logger;
@@ -36,6 +38,8 @@ public class DiskJournal<V>
     public static final byte JOURNAL_FILE_TYPE_DEFAULT = 1;
 
     public static final byte JOURNAL_FILE_TYPE_OVERFLOW = 2;
+
+    public static final byte JOURNAL_FILE_TYPE_BATCH = 3;
 
     private static final Logger LOGGER = LoggerFactory.getLogger( DiskJournal.class );
 
@@ -109,7 +113,7 @@ public class DiskJournal<V>
                 {
                     if ( listener != null )
                     {
-                        listener.onSync( result.getValue2() );
+                        listener.onCommit( result.getValue2() );
                     }
                 }
                 else if ( result.getValue1() == DiskJournalAppendResult.JOURNAL_OVERFLOW )
@@ -149,7 +153,7 @@ public class DiskJournal<V>
                     // Notify listeners about flushed to journal
                     if ( listener != null )
                     {
-                        listener.onSync( result.getValue2() );
+                        listener.onCommit( result.getValue2() );
                     }
                 }
             }
@@ -172,8 +176,7 @@ public class DiskJournal<V>
     @Override
     public JournalBatch<V> startBatchProcess( JournalListener<V> listener )
     {
-        // TODO Auto-generated method stub
-        return null;
+        return new DiskJournalBatchProcess<>( this, listener );
     }
 
     @Override
@@ -200,6 +203,70 @@ public class DiskJournal<V>
         return journalingPath;
     }
 
+    void commitBatchProcess( JournalBatch<V> journalBatch, List<DiskJournalEntryFacade<V>> entries, int dataSize,
+                             JournalListener<V> listener )
+        throws JournalException
+    {
+        synchronized ( journalFiles )
+        {
+            // Storing current recordId for case of rollback
+            long markedRecordId = getRecordIdGenerator().lastGeneratedRecordId();
+
+            try
+            {
+                // Calculate the file size of the batch journal file ...
+                int calculatedLogFileSize =
+                    DiskJournal.JOURNAL_FILE_HEADER_SIZE + dataSize
+                        + ( entries.size() * DiskJournal.JOURNAL_RECORD_HEADER_SIZE );
+
+                // ... and start new journal
+                DiskJournalFile<V> journalFile = buildJournalFile( calculatedLogFileSize, JOURNAL_FILE_TYPE_BATCH );
+                journalFiles.push( journalFile );
+
+                // Persist all entries to disk ...
+                List<JournalRecord<V>> records = new LinkedList<>();
+                for ( DiskJournalEntryFacade<V> entry : entries )
+                {
+                    Tuple<DiskJournalAppendResult, JournalRecord<V>> result = journalFile.appendRecord( entry );
+                    if ( result.getValue1() != DiskJournalAppendResult.APPEND_SUCCESSFUL )
+                    {
+                        throw new SynchronousJournalException( "Failed to persist journal entry" );
+                    }
+                }
+
+                // ... and if non of them failed just announce them as committed
+                for ( JournalRecord<V> record : records )
+                {
+                    listener.onCommit( record );
+                }
+            }
+            catch ( Exception e )
+            {
+                if ( listener != null )
+                {
+                    listener.onFailure( journalBatch,
+                                        new SynchronousJournalException( "Failed to persist journal batch process", e ) );
+                }
+
+                // Rollback the journal file
+                DiskJournalFile<V> journalFile = journalFiles.pop();
+                try
+                {
+                    journalFile.close();
+                    String fileName = journalFile.getFileName();
+                    Files.delete( journalingPath.resolve( fileName ) );
+                }
+                catch ( IOException ioe )
+                {
+                    throw new JournalException( "Could not rollback journal batch file", ioe );
+                }
+
+                // Rollback the recordId
+                getRecordIdGenerator().notifyHighestJournalRecordId( markedRecordId );
+            }
+        }
+    }
+
     void pushJournalFileFromReplay( DiskJournalFile<V> diskJournalFile )
     {
         synchronized ( journalFiles )
@@ -207,11 +274,6 @@ public class DiskJournal<V>
             journalFiles.push( diskJournalFile );
             setCurrentLogNumber( diskJournalFile.getLogNumber() );
         }
-    }
-
-    void journalRecordCommitted( DiskJournalRecord<V> record, DiskJournalFile<V> journalFile )
-    {
-        // TODO: Implementation missing
     }
 
     private DiskJournalFile<V> buildJournalFile()

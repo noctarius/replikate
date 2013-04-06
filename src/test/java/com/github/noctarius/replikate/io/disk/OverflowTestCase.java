@@ -13,6 +13,7 @@ import java.util.Random;
 import org.junit.Test;
 
 import com.github.noctarius.replikate.Journal;
+import com.github.noctarius.replikate.JournalBatch;
 import com.github.noctarius.replikate.JournalEntry;
 import com.github.noctarius.replikate.JournalListener;
 import com.github.noctarius.replikate.JournalRecord;
@@ -210,7 +211,7 @@ public class OverflowTestCase
     {
 
         @Override
-        public void onSync( JournalRecord<byte[]> record )
+        public void onCommit( JournalRecord<byte[]> record )
         {
             System.out.println( "flushed: " + record );
         }
@@ -219,6 +220,12 @@ public class OverflowTestCase
         public void onFailure( JournalEntry<byte[]> entry, JournalException cause )
         {
             System.out.println( "failed: " + entry );
+        }
+
+        @Override
+        public void onFailure( JournalBatch<byte[]> journalBatch, JournalException cause )
+        {
+            System.out.println( "failed: " + journalBatch );
         }
 
         @Override

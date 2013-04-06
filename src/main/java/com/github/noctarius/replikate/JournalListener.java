@@ -6,9 +6,11 @@ import com.github.noctarius.replikate.spi.ReplayNotificationResult;
 public interface JournalListener<V>
 {
 
-    void onSync( JournalRecord<V> record );
+    void onCommit( JournalRecord<V> record );
 
     void onFailure( JournalEntry<V> entry, JournalException cause );
+
+    void onFailure( JournalBatch<V> journalBatch, JournalException cause );
 
     /**
      * This callback method is called when during journal replaying a missing recordId or other suspicious events arise.<br>
@@ -29,7 +31,7 @@ public interface JournalListener<V>
      * @return Further execution behavior
      */
     ReplayNotificationResult onReplaySuspiciousRecordId( Journal<V> journal, JournalRecord<V> lastRecord,
-                                                             JournalRecord<V> currentRecord );
+                                                         JournalRecord<V> currentRecord );
 
     /**
      * This method is called when during startup of the Journal implementation a previous journal was found and records

@@ -15,6 +15,7 @@ import java.util.Random;
 import org.junit.Test;
 
 import com.github.noctarius.replikate.Journal;
+import com.github.noctarius.replikate.JournalBatch;
 import com.github.noctarius.replikate.JournalEntry;
 import com.github.noctarius.replikate.JournalListener;
 import com.github.noctarius.replikate.JournalNamingStrategy;
@@ -437,7 +438,7 @@ public class BasicDiskJournalTestCase
     {
 
         @Override
-        public void onSync( JournalRecord<TestRecord> record )
+        public void onCommit( JournalRecord<TestRecord> record )
         {
             System.out.println( "flushed: " + record );
         }
@@ -446,6 +447,12 @@ public class BasicDiskJournalTestCase
         public void onFailure( JournalEntry<TestRecord> entry, JournalException cause )
         {
             System.out.println( "failed: " + entry );
+        }
+
+        @Override
+        public void onFailure( JournalBatch<TestRecord> journalBatch, JournalException cause )
+        {
+            System.out.println( "failed: " + journalBatch );
         }
 
         @Override

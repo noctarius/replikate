@@ -108,8 +108,7 @@ abstract class DiskJournalIOUtils
             byte[] entryData = new byte[entryLength];
             raf.readFully( entryData );
 
-            return new DiskJournalRecord<>( reader.readJournalEntry( recordId, type, entryData ), recordId, journal,
-                                            null );
+            return new DiskJournalRecord<>( reader.readJournalEntry( recordId, type, entryData ), recordId );
         }
         catch ( IOException e )
         {

@@ -11,16 +11,10 @@ class DiskJournalRecord<V>
 
     private final long recordId;
 
-    private final DiskJournal<V> journal;
-
-    private final DiskJournalFile<V> journalFile;
-
-    DiskJournalRecord( JournalEntry<V> entry, long recordId, DiskJournal<V> journal, DiskJournalFile<V> journalFile )
+    DiskJournalRecord( JournalEntry<V> entry, long recordId )
     {
         this.entry = entry;
         this.recordId = recordId;
-        this.journal = journal;
-        this.journalFile = journalFile;
     }
 
     @Override
@@ -45,12 +39,6 @@ class DiskJournalRecord<V>
     public JournalEntry<V> getJournalEntry()
     {
         return entry;
-    }
-
-    @Override
-    public void notifyCommitted()
-    {
-        journal.journalRecordCommitted( this, journalFile );
     }
 
     @Override
