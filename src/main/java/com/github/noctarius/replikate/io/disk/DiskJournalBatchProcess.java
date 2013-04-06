@@ -59,6 +59,18 @@ class DiskJournalBatchProcess<V>
     }
 
     @Override
+    public void commitSynchronous()
+        throws JournalException
+    {
+        if ( !committed.compareAndSet( false, true ) )
+        {
+            throw new JournalException( "Batch already committed" );
+        }
+
+        journal.commitBatchProcessSync( this, entries, dataSize, listener );
+    }
+
+    @Override
     public String toString()
     {
         return "DiskJournalBatchProcess [committed=" + committed + ", entries=" + entries + "]";

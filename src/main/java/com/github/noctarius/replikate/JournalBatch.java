@@ -10,4 +10,7 @@ public interface JournalBatch<V>
 
     void commit();
 
+    void commitSynchronous()
+        throws JournalException;
+
 }
