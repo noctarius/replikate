@@ -8,7 +8,6 @@ public interface JournalBatch<V>
     void appendEntry( JournalEntry<V> entry )
         throws JournalException;
 
-    void commit()
-        throws JournalException;
+    void commit();
 
 }
