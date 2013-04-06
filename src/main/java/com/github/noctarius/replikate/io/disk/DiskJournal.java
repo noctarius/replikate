@@ -127,7 +127,7 @@ public class DiskJournal<V>
         try
         {
             DiskJournalEntryFacade<V> journalEntry = DiskJournalIOUtils.prepareJournalEntry( entry, getWriter() );
-            journalQueue.offer( new Operation( journalEntry, listener ) );
+            journalQueue.offer( new SimpleAppendOperation( journalEntry, listener ) );
         }
         catch ( IOException e )
         {
@@ -216,7 +216,7 @@ public class DiskJournal<V>
             throw new JournalException( "DiskJournal already closed" );
         }
 
-        journalQueue.offer( new BatchOperation( entries, journalBatch, dataSize, listener ) );
+        journalQueue.offer( new BatchCommitOperation( entries, journalBatch, dataSize, listener ) );
     }
 
     void pushJournalFileFromReplay( DiskJournalFile<V> diskJournalFile )
@@ -365,7 +365,7 @@ public class DiskJournal<V>
         }
     }
 
-    private class Operation
+    private class SimpleAppendOperation
         implements JournalOperation
     {
 
@@ -373,7 +373,7 @@ public class DiskJournal<V>
 
         protected final JournalListener<V> listener;
 
-        private Operation( JournalEntry<V> entry, JournalListener<V> listener )
+        private SimpleAppendOperation( JournalEntry<V> entry, JournalListener<V> listener )
         {
             this.entry = entry;
             this.listener = listener;
@@ -385,7 +385,7 @@ public class DiskJournal<V>
         }
     }
 
-    private class BatchOperation
+    private class BatchCommitOperation
         implements JournalOperation
     {
 
@@ -397,8 +397,8 @@ public class DiskJournal<V>
 
         private final int dataSize;
 
-        private BatchOperation( List<DiskJournalEntryFacade<V>> entries, JournalBatch<V> journalBatch, int dataSize,
-                                JournalListener<V> listener )
+        private BatchCommitOperation( List<DiskJournalEntryFacade<V>> entries, JournalBatch<V> journalBatch,
+                                      int dataSize, JournalListener<V> listener )
         {
             this.entries = entries;
             this.journalBatch = journalBatch;
