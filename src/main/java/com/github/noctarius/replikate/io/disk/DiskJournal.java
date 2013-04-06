@@ -6,7 +6,6 @@ import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.util.Deque;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentLinkedDeque;
@@ -490,29 +489,24 @@ public class DiskJournal<V>
             throws IOException
         {
             // Calculate the file size of the batch journal file ...
-            int calculatedLogFileSize =
-                DiskJournal.JOURNAL_FILE_HEADER_SIZE + dataSize
-                    + ( entries.size() * DiskJournal.JOURNAL_RECORD_HEADER_SIZE );
+            int calculatedDataSize = dataSize + ( entries.size() * DiskJournal.JOURNAL_RECORD_HEADER_SIZE );
+            int calculatedLogFileSize = calculatedDataSize + DiskJournal.JOURNAL_FILE_HEADER_SIZE;
 
             // ... and start new journal
             DiskJournalFile<V> journalFile = buildJournalFile( calculatedLogFileSize, JOURNAL_FILE_TYPE_BATCH );
             journalFiles.push( journalFile );
 
             // Persist all entries to disk ...
-            List<JournalRecord<V>> records = new LinkedList<>();
-            for ( DiskJournalEntryFacade<V> entry : entries )
-            {
-                Tuple<DiskJournalAppendResult, JournalRecord<V>> result = journalFile.appendRecord( entry );
-                if ( result.getValue1() != DiskJournalAppendResult.APPEND_SUCCESSFUL )
-                {
-                    throw new SynchronousJournalException( "Failed to persist journal entry" );
-                }
+            Tuple<DiskJournalAppendResult, List<JournalRecord<V>>> result =
+                journalFile.appendRecords( entries, calculatedDataSize );
 
-                records.add( result.getValue2() );
+            if ( result.getValue1() != DiskJournalAppendResult.APPEND_SUCCESSFUL )
+            {
+                throw new SynchronousJournalException( "Failed to persist journal entry" );
             }
 
             // ... and if non of them failed just announce them as committed
-            for ( JournalRecord<V> record : records )
+            for ( JournalRecord<V> record : result.getValue2() )
             {
                 listener.onCommit( record );
             }

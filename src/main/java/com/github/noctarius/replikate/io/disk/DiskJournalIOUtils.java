@@ -3,6 +3,7 @@ package com.github.noctarius.replikate.io.disk;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.io.RandomAccessFile;
 import java.util.Arrays;
 
@@ -28,10 +29,6 @@ abstract class DiskJournalIOUtils
         long nanoSeconds = System.nanoTime();
         byte[] prefiller = new byte[header.getMaxLogFileSize()];
         Arrays.fill( prefiller, (byte) 0 );
-
-        // Resize the file to maxLogFileSize
-        raf.setLength( header.getMaxLogFileSize() );
-        raf.seek( 0 );
 
         try ( ByteArrayBufferOutputStream buffer = new ByteArrayBufferOutputStream( prefiller );
                         DataOutputStream stream = new DataOutputStream( buffer ) )
@@ -117,6 +114,25 @@ abstract class DiskJournalIOUtils
         }
 
         LOGGER.trace( "DiskJournalIOUtils::writeRecord took {}ns", ( System.nanoTime() - nanoSeconds ) );
+    }
+
+    static <V> void prepareBulkRecord( DiskJournalRecord<V> record, byte[] entryData, OutputStream out )
+        throws IOException
+    {
+        long nanoSeconds = System.nanoTime();
+
+        try ( DataOutputStream stream = new DataOutputStream( out ) )
+        {
+            int recordLength = DiskJournal.JOURNAL_RECORD_HEADER_SIZE + entryData.length;
+
+            stream.writeInt( recordLength );
+            stream.writeLong( record.getRecordId() );
+            stream.writeByte( record.getType() );
+            stream.write( entryData );
+            stream.writeInt( recordLength );
+        }
+
+        LOGGER.trace( "DiskJournalIOUtils::prepareBulkRecord took {}ns", ( System.nanoTime() - nanoSeconds ) );
     }
 
     static <V> DiskJournalRecord<V> readRecord( DiskJournal<V> journal, JournalEntryReader<V> reader,

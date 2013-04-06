@@ -50,7 +50,7 @@ public class BatchProcessTestCase
     public void testSimpleBatchProcessAsyncSuccessful()
         throws Exception
     {
-        File path = prepareJournalDirectory( "testSimpleBatchProcessSuccessful" );
+        File path = prepareJournalDirectory( "testSimpleBatchProcessAsyncSuccessful" );
 
         final CountDownLatch latch = new CountDownLatch( 3 );
         FlushListener flushListener = new FlushListener()
@@ -82,7 +82,7 @@ public class BatchProcessTestCase
 
         RecordIdGenerator recordIdGenerator = new RecordIdGenerator();
         Journal<byte[]> journal =
-            new DiskJournal<>( "testSimpleBatchProcessSuccessful", path.toPath(), flushListener, 1024,
+            new DiskJournal<>( "testSimpleBatchProcessAsyncSuccessful", path.toPath(), flushListener, 1024,
                                recordIdGenerator, new RecordReader(), new RecordWriter(), new NamingStrategy() );
 
         JournalEntry<byte[]> record1 = buildTestRecord( (byte) 1 );

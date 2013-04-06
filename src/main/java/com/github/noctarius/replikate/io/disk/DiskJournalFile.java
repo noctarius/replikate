@@ -3,6 +3,8 @@ package com.github.noctarius.replikate.io.disk;
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -111,6 +113,39 @@ class DiskJournalFile<V>
         {
             appendLock.unlock();
             LOGGER.trace( "DiskJournalFile::appendRecord took {}ns", ( System.nanoTime() - nanoSeconds ) );
+        }
+    }
+
+    public Tuple<DiskJournalAppendResult, List<JournalRecord<V>>> appendRecords( List<DiskJournalEntryFacade<V>> entries,
+                                                                                 int dataSize )
+        throws IOException
+    {
+        long nanoSeconds = System.nanoTime();
+
+        try
+        {
+            appendLock.lock();
+
+            byte[] data = new byte[dataSize];
+            List<JournalRecord<V>> records = new LinkedList<>();
+            try ( ByteArrayBufferOutputStream out = new ByteArrayBufferOutputStream( data ) )
+            {
+                for ( DiskJournalEntryFacade<V> entry : entries )
+                {
+                    long recordId = journal.getRecordIdGenerator().nextRecordId();
+                    DiskJournalRecord<V> record = new DiskJournalRecord<V>( entry.wrappedEntry, recordId );
+                    DiskJournalIOUtils.prepareBulkRecord( record, entry.cachedData, out );
+                    records.add( record );
+                }
+
+                raf.write( data );
+            }
+            return new Tuple<>( DiskJournalAppendResult.APPEND_SUCCESSFUL, records );
+        }
+        finally
+        {
+            appendLock.unlock();
+            LOGGER.trace( "DiskJournalFile::appendRecords took {}ns", ( System.nanoTime() - nanoSeconds ) );
         }
     }
 
