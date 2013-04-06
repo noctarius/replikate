@@ -1,7 +1,5 @@
 package com.github.noctarius.replikate.io.disk;
 
-import java.io.ByteArrayOutputStream;
-import java.io.DataOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
@@ -91,38 +89,23 @@ class DiskJournalFile<V>
         try
         {
             appendLock.lock();
-            try ( ByteArrayOutputStream out = new ByteArrayOutputStream( 100 );
-                            DataOutputStream stream = new DataOutputStream( out ) )
+
+            byte[] entryData = entry.cachedData;
+            int length = entryData.length + DiskJournal.JOURNAL_RECORD_HEADER_SIZE;
+            if ( length > header.getMaxLogFileSize() )
             {
-                byte[] entryData = null;
-                if ( entry.cachedData != null )
-                {
-                    entryData = entry.cachedData;
-                }
-
-                if ( entryData == null )
-                {
-                    journal.getWriter().writeJournalEntry( entry, stream );
-                    entryData = out.toByteArray();
-                    entry.cachedData = entryData;
-                }
-
-                int length = entryData.length + DiskJournal.JOURNAL_RECORD_HEADER_SIZE;
-                if ( length > header.getMaxLogFileSize() )
-                {
-                    return new Tuple<>( DiskJournalAppendResult.JOURNAL_FULL_OVERFLOW, null );
-                }
-                else if ( header.getMaxLogFileSize() < getPosition() + length )
-                {
-                    return new Tuple<>( DiskJournalAppendResult.JOURNAL_OVERFLOW, null );
-                }
-
-                long recordId = journal.getRecordIdGenerator().nextRecordId();
-                DiskJournalRecord<V> record = new DiskJournalRecord<V>( entry.wrappedEntry, recordId );
-                DiskJournalIOUtils.writeRecord( record, entryData, raf );
-
-                return new Tuple<>( DiskJournalAppendResult.APPEND_SUCCESSFUL, (JournalRecord<V>) record );
+                return new Tuple<>( DiskJournalAppendResult.JOURNAL_FULL_OVERFLOW, null );
             }
+            else if ( header.getMaxLogFileSize() < getPosition() + length )
+            {
+                return new Tuple<>( DiskJournalAppendResult.JOURNAL_OVERFLOW, null );
+            }
+
+            long recordId = journal.getRecordIdGenerator().nextRecordId();
+            DiskJournalRecord<V> record = new DiskJournalRecord<V>( entry.wrappedEntry, recordId );
+            DiskJournalIOUtils.writeRecord( record, entryData, raf );
+
+            return new Tuple<>( DiskJournalAppendResult.APPEND_SUCCESSFUL, (JournalRecord<V>) record );
         }
         finally
         {

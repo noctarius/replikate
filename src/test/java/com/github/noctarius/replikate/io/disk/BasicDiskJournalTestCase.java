@@ -73,10 +73,10 @@ public class BasicDiskJournalTestCase
         JournalEntry<TestRecord> record3 = buildTestRecord( 4, "test3", (byte) 32 );
         JournalEntry<TestRecord> record4 = buildTestRecord( 8, "test4", (byte) 48 );
 
-        journal.appendEntry( record1 );
-        journal.appendEntry( record2 );
-        journal.appendEntry( record3 );
-        journal.appendEntry( record4 );
+        journal.appendEntrySynchronous( record1 );
+        journal.appendEntrySynchronous( record2 );
+        journal.appendEntrySynchronous( record3 );
+        journal.appendEntrySynchronous( record4 );
 
         journal.close();
 
@@ -109,10 +109,10 @@ public class BasicDiskJournalTestCase
         JournalEntry<TestRecord> record3 = buildTestRecord( 4, "test3", (byte) 32 );
         JournalEntry<TestRecord> record4 = buildTestRecord( 8, "test4", (byte) 48 );
 
-        journal.appendEntry( record1 );
-        journal.appendEntry( record2 );
-        journal.appendEntry( record3 );
-        journal.appendEntry( record4 );
+        journal.appendEntrySynchronous( record1 );
+        journal.appendEntrySynchronous( record2 );
+        journal.appendEntrySynchronous( record3 );
+        journal.appendEntrySynchronous( record4 );
 
         journal.close();
 
@@ -158,10 +158,10 @@ public class BasicDiskJournalTestCase
         JournalEntry<TestRecord> record3 = buildTestRecord( 4, "test3", (byte) 32 );
         JournalEntry<TestRecord> record4 = buildTestRecord( 8, "test4", (byte) 48 );
 
-        journal.appendEntry( record1 );
-        journal.appendEntry( record2 );
-        journal.appendEntry( record3 );
-        journal.appendEntry( record4 );
+        journal.appendEntrySynchronous( record1 );
+        journal.appendEntrySynchronous( record2 );
+        journal.appendEntrySynchronous( record3 );
+        journal.appendEntrySynchronous( record4 );
 
         journal.close();
 
@@ -207,14 +207,14 @@ public class BasicDiskJournalTestCase
         JournalEntry<TestRecord> record3 = buildTestRecord( 4, "test3", (byte) 32 );
         JournalEntry<TestRecord> record4 = buildTestRecord( 8, "test4", (byte) 48 );
 
-        journal.appendEntry( record1 );
-        journal.appendEntry( record2 );
+        journal.appendEntrySynchronous( record1 );
+        journal.appendEntrySynchronous( record2 );
 
         // Force to create a hole in the journal file (in normal operation that should not happen)
         recordIdGenerator.recordId++;
 
-        journal.appendEntry( record3 );
-        journal.appendEntry( record4 );
+        journal.appendEntrySynchronous( record3 );
+        journal.appendEntrySynchronous( record4 );
 
         journal.close();
 
@@ -248,14 +248,14 @@ public class BasicDiskJournalTestCase
         JournalEntry<TestRecord> record3 = buildTestRecord( 4, "test3", (byte) 32 );
         JournalEntry<TestRecord> record4 = buildTestRecord( 8, "test4", (byte) 48 );
 
-        journal.appendEntry( record1 );
-        journal.appendEntry( record2 );
+        journal.appendEntrySynchronous( record1 );
+        journal.appendEntrySynchronous( record2 );
 
         // Force to create a hole in the journal file (in normal operation that should not happen)
         recordIdGenerator.recordId++;
 
-        journal.appendEntry( record3 );
-        journal.appendEntry( record4 );
+        journal.appendEntrySynchronous( record3 );
+        journal.appendEntrySynchronous( record4 );
 
         journal.close();
 

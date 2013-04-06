@@ -44,11 +44,11 @@ public class OverflowTestCase
         JournalEntry<byte[]> record2 = buildTestRecord( (byte) 2 );
         JournalEntry<byte[]> record3 = buildTestRecord( (byte) 3 );
 
-        journal.appendEntry( record1 );
-        journal.appendEntry( record2 );
+        journal.appendEntrySynchronous( record1 );
+        journal.appendEntrySynchronous( record2 );
 
         // Here the journal should overflow
-        journal.appendEntry( record3 );
+        journal.appendEntrySynchronous( record3 );
 
         journal.close();
 
@@ -84,7 +84,7 @@ public class OverflowTestCase
         for ( int i = 0; i < records.length; i++ )
         {
             records[i] = buildTestRecord( (byte) i );
-            journal.appendEntry( records[i] );
+            journal.appendEntrySynchronous( records[i] );
         }
 
         journal.close();
@@ -122,11 +122,11 @@ public class OverflowTestCase
             records[i] = buildTestRecord( i == 2 ? 1024 : 400, (byte) i );
         }
 
-        journal.appendEntry( records[0] );
-        journal.appendEntry( records[1] );
-        journal.appendEntry( records[2] );
-        journal.appendEntry( records[3] );
-        journal.appendEntry( records[4] );
+        journal.appendEntrySynchronous( records[0] );
+        journal.appendEntrySynchronous( records[1] );
+        journal.appendEntrySynchronous( records[2] );
+        journal.appendEntrySynchronous( records[3] );
+        journal.appendEntrySynchronous( records[4] );
 
         journal.close();
 

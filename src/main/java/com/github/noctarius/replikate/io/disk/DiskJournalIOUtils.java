@@ -9,7 +9,9 @@ import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.github.noctarius.replikate.JournalEntry;
 import com.github.noctarius.replikate.spi.JournalEntryReader;
+import com.github.noctarius.replikate.spi.JournalEntryWriter;
 
 abstract class DiskJournalIOUtils
 {
@@ -67,6 +69,32 @@ abstract class DiskJournalIOUtils
         byte type = raf.readByte();
         int firstDataOffset = raf.readInt();
         return new DiskJournalFileHeader( version, maxLogFileSize, logFileNumber, type, firstDataOffset );
+    }
+
+    static <V> DiskJournalEntryFacade<V> prepareJournalEntry( JournalEntry<V> entry, JournalEntryWriter<V> writer )
+        throws IOException
+    {
+        long nanoSeconds = System.nanoTime();
+
+        DiskJournalEntryFacade<V> journalEntry =
+            ( entry instanceof DiskJournalEntryFacade ) ? (DiskJournalEntryFacade<V>) entry
+                            : new DiskJournalEntryFacade<>( entry );
+        if ( journalEntry.cachedData == null )
+        {
+            try ( ByteArrayOutputStream out = new ByteArrayOutputStream( 100 );
+                            DataOutputStream stream = new DataOutputStream( out ) )
+            {
+                writer.writeJournalEntry( entry, stream );
+                journalEntry.cachedData = out.toByteArray();
+            }
+
+            if ( LOGGER.isTraceEnabled() )
+            {
+                LOGGER.trace( "DiskJournalIOUtils::prepareJournalEntry tool {}ns", ( System.nanoTime() - nanoSeconds ) );
+            }
+        }
+
+        return journalEntry;
     }
 
     static <V> void writeRecord( DiskJournalRecord<V> record, byte[] entryData, RandomAccessFile raf )

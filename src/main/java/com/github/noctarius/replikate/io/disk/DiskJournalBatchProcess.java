@@ -1,7 +1,5 @@
 package com.github.noctarius.replikate.io.disk;
 
-import java.io.ByteArrayOutputStream;
-import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
@@ -36,12 +34,10 @@ class DiskJournalBatchProcess<V>
     public void appendEntry( JournalEntry<V> entry )
         throws JournalException
     {
-        DiskJournalEntryFacade<V> batchEntry = new DiskJournalEntryFacade<>( entry );
-        try ( ByteArrayOutputStream out = new ByteArrayOutputStream( 100 );
-                        DataOutputStream stream = new DataOutputStream( out ) )
+        try
         {
-            journal.getWriter().writeJournalEntry( entry, stream );
-            batchEntry.cachedData = out.toByteArray();
+            DiskJournalEntryFacade<V> batchEntry = DiskJournalIOUtils.prepareJournalEntry( entry, journal.getWriter() );
+            entries.add( batchEntry );
             dataSize += batchEntry.cachedData.length;
         }
         catch ( IOException e )

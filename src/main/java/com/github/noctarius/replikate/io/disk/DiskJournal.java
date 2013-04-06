@@ -8,7 +8,11 @@ import java.nio.file.Path;
 import java.util.Deque;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,7 +47,15 @@ public class DiskJournal<V>
 
     private static final Logger LOGGER = LoggerFactory.getLogger( DiskJournal.class );
 
+    private final BlockingQueue<Tuple<JournalEntry<V>, JournalListener<V>>> journalQueue = new LinkedBlockingQueue<>();
+
+    private final DiskJournalWriterTask diskJournalWriterTask = new DiskJournalWriterTask();
+
     private final Deque<DiskJournalFile<V>> journalFiles = new ConcurrentLinkedDeque<>();
+
+    private final Thread diskJournalWriter;
+
+    private final CountDownLatch shutdownLatch = new CountDownLatch( 1 );
 
     private final JournalListener<V> listener;
 
@@ -88,6 +100,10 @@ public class DiskJournal<V>
             replayer.replay();
         }
 
+        // Startup asynchronous journal writer
+        diskJournalWriter = new Thread( diskJournalWriterTask, "DiskJournalWriter-" + name );
+        diskJournalWriter.start();
+
         // Replay not required or succeed so start new journal
         journalFiles.push( buildJournalFile() );
     }
@@ -101,13 +117,37 @@ public class DiskJournal<V>
 
     @Override
     public void appendEntry( JournalEntry<V> entry, JournalListener<V> listener )
+        throws JournalException
+    {
+        try
+        {
+            DiskJournalEntryFacade<V> journalEntry = DiskJournalIOUtils.prepareJournalEntry( entry, getWriter() );
+            journalQueue.offer( new Tuple<JournalEntry<V>, JournalListener<V>>( journalEntry, listener ) );
+        }
+        catch ( IOException e )
+        {
+            throw new SynchronousJournalException( "Could not prepare journal entry", e );
+        }
+    }
+
+    @Override
+    public void appendEntrySynchronous( JournalEntry<V> entry )
+        throws JournalException
+    {
+        appendEntrySynchronous( entry, listener );
+    }
+
+    @Override
+    public void appendEntrySynchronous( JournalEntry<V> entry, JournalListener<V> listener )
+        throws JournalException
     {
         try
         {
             synchronized ( journalFiles )
             {
                 DiskJournalFile<V> journalFile = journalFiles.peek();
-                DiskJournalEntryFacade<V> recordEntry = new DiskJournalEntryFacade<>( entry );
+                DiskJournalEntryFacade<V> recordEntry = DiskJournalIOUtils.prepareJournalEntry( entry, getWriter() );
+
                 Tuple<DiskJournalAppendResult, JournalRecord<V>> result = journalFile.appendRecord( recordEntry );
                 if ( result.getValue1() == DiskJournalAppendResult.APPEND_SUCCESSFUL )
                 {
@@ -127,7 +167,7 @@ public class DiskJournal<V>
                     journalFiles.push( buildJournalFile() );
 
                     // ... finally retry to write to journal
-                    appendEntry( entry, listener );
+                    appendEntrySynchronous( entry, listener );
                 }
                 else if ( result.getValue1() == DiskJournalAppendResult.JOURNAL_FULL_OVERFLOW )
                 {
@@ -191,9 +231,21 @@ public class DiskJournal<V>
     {
         synchronized ( journalFiles )
         {
-            for ( DiskJournalFile<V> journalFile : journalFiles )
+            try
             {
-                journalFile.close();
+                diskJournalWriterTask.shutdown();
+
+                // Wait for asynchronous journal writer to finish
+                shutdownLatch.await();
+
+                for ( DiskJournalFile<V> journalFile : journalFiles )
+                {
+                    journalFile.close();
+                }
+            }
+            catch ( InterruptedException e )
+            {
+
             }
         }
     }
@@ -289,6 +341,56 @@ public class DiskJournal<V>
         String filename = getNamingStrategy().generate( logNumber );
         File journalFile = new File( journalingPath.toFile(), filename );
         return new DiskJournalFile<>( this, journalFile, logNumber, maxLogFileSize, type );
+    }
+
+    private class DiskJournalWriterTask
+        implements Runnable
+    {
+
+        private final AtomicBoolean shutdown = new AtomicBoolean( false );
+
+        private final BlockingQueue<Tuple<JournalEntry<V>, JournalListener<V>>> queue = journalQueue;
+
+        @Override
+        public void run()
+        {
+            try
+            {
+                while ( true )
+                {
+                    // If all work is done, break up
+                    if ( shutdown.get() && queue.size() == 0 )
+                    {
+                        break;
+                    }
+
+                    Tuple<JournalEntry<V>, JournalListener<V>> tuple = queue.take();
+                    if ( tuple != null )
+                    {
+                        appendEntrySynchronous( tuple.getValue1(), tuple.getValue2() );
+                    }
+
+                    Thread.sleep( 1 );
+                }
+            }
+            catch ( InterruptedException e )
+            {
+                if ( !shutdown.get() )
+                {
+                    LOGGER.warn( "DiskJournalWriter ignores to interrupt, to shutdown "
+                        + "it call DiskJournalWriterTask::shutdown()", e );
+                }
+            }
+
+            shutdownLatch.countDown();
+        }
+
+        public void shutdown()
+        {
+            shutdown.compareAndSet( false, true );
+            diskJournalWriter.interrupt();
+        }
+
     }
 
 }
