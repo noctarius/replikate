@@ -53,9 +53,11 @@ public class DiskJournal<V>
 
     private final Deque<DiskJournalFile<V>> journalFiles = new ConcurrentLinkedDeque<>();
 
-    private final Thread diskJournalWriter;
-
     private final CountDownLatch shutdownLatch = new CountDownLatch( 1 );
+
+    private final AtomicBoolean shutdown = new AtomicBoolean( false );
+
+    private final Thread diskJournalWriter;
 
     private final JournalListener<V> listener;
 
@@ -103,9 +105,6 @@ public class DiskJournal<V>
         // Startup asynchronous journal writer
         diskJournalWriter = new Thread( diskJournalWriterTask, "DiskJournalWriter-" + name );
         diskJournalWriter.start();
-
-        // Replay not required or succeed so start new journal
-        journalFiles.push( buildJournalFile() );
     }
 
     @Override
@@ -119,6 +118,11 @@ public class DiskJournal<V>
     public void appendEntry( JournalEntry<V> entry, JournalListener<V> listener )
         throws JournalException
     {
+        if ( shutdown.get() )
+        {
+            return;
+        }
+
         try
         {
             DiskJournalEntryFacade<V> journalEntry = DiskJournalIOUtils.prepareJournalEntry( entry, getWriter() );
@@ -141,11 +145,161 @@ public class DiskJournal<V>
     public void appendEntrySynchronous( JournalEntry<V> entry, JournalListener<V> listener )
         throws JournalException
     {
+        if ( shutdown.get() )
+        {
+            return;
+        }
+
+        appendEntry0( entry, listener );
+    }
+
+    @Override
+    public JournalBatch<V> startBatchProcess()
+    {
+        return startBatchProcess( listener );
+    }
+
+    @Override
+    public JournalBatch<V> startBatchProcess( JournalListener<V> listener )
+    {
+        return new DiskJournalBatchProcess<>( this, listener );
+    }
+
+    @Override
+    public long getLastRecordId()
+    {
+        return getRecordIdGenerator().lastGeneratedRecordId();
+    }
+
+    @Override
+    public void close()
+        throws IOException
+    {
+        if ( !shutdown.compareAndSet( false, true ) )
+        {
+            return;
+        }
+
+        synchronized ( journalFiles )
+        {
+            try
+            {
+                diskJournalWriterTask.shutdown();
+
+                // Wait for asynchronous journal writer to finish
+                shutdownLatch.await();
+
+                for ( DiskJournalFile<V> journalFile : journalFiles )
+                {
+                    journalFile.close();
+                }
+            }
+            catch ( InterruptedException e )
+            {
+
+            }
+        }
+    }
+
+    public Path getJournalingPath()
+    {
+        return journalingPath;
+    }
+
+    void commitBatchProcess( JournalBatch<V> journalBatch, List<DiskJournalEntryFacade<V>> entries, int dataSize,
+                             JournalListener<V> listener )
+        throws JournalException
+    {
+        if ( shutdown.get() )
+        {
+            throw new JournalException( "DiskJournal already closed" );
+        }
+
+        synchronized ( journalFiles )
+        {
+            // Storing current recordId for case of rollback
+            long markedRecordId = getRecordIdGenerator().lastGeneratedRecordId();
+
+            try
+            {
+                // Calculate the file size of the batch journal file ...
+                int calculatedLogFileSize =
+                    DiskJournal.JOURNAL_FILE_HEADER_SIZE + dataSize
+                        + ( entries.size() * DiskJournal.JOURNAL_RECORD_HEADER_SIZE );
+
+                // ... and start new journal
+                DiskJournalFile<V> journalFile = buildJournalFile( calculatedLogFileSize, JOURNAL_FILE_TYPE_BATCH );
+                journalFiles.push( journalFile );
+
+                // Persist all entries to disk ...
+                List<JournalRecord<V>> records = new LinkedList<>();
+                for ( DiskJournalEntryFacade<V> entry : entries )
+                {
+                    Tuple<DiskJournalAppendResult, JournalRecord<V>> result = journalFile.appendRecord( entry );
+                    if ( result.getValue1() != DiskJournalAppendResult.APPEND_SUCCESSFUL )
+                    {
+                        throw new SynchronousJournalException( "Failed to persist journal entry" );
+                    }
+
+                    records.add( result.getValue2() );
+                }
+
+                // ... and if non of them failed just announce them as committed
+                for ( JournalRecord<V> record : records )
+                {
+                    listener.onCommit( record );
+                }
+            }
+            catch ( Exception e )
+            {
+                if ( listener != null )
+                {
+                    listener.onFailure( journalBatch,
+                                        new SynchronousJournalException( "Failed to persist journal batch process", e ) );
+                }
+
+                // Rollback the journal file
+                DiskJournalFile<V> journalFile = journalFiles.pop();
+                try
+                {
+                    journalFile.close();
+                    String fileName = journalFile.getFileName();
+                    Files.delete( journalingPath.resolve( fileName ) );
+                }
+                catch ( IOException ioe )
+                {
+                    throw new JournalException( "Could not rollback journal batch file", ioe );
+                }
+
+                // Rollback the recordId
+                getRecordIdGenerator().notifyHighestJournalRecordId( markedRecordId );
+            }
+        }
+    }
+
+    void pushJournalFileFromReplay( DiskJournalFile<V> diskJournalFile )
+    {
+        synchronized ( journalFiles )
+        {
+            journalFiles.push( diskJournalFile );
+            setCurrentLogNumber( diskJournalFile.getLogNumber() );
+        }
+    }
+
+    private void appendEntry0( JournalEntry<V> entry, JournalListener<V> listener )
+    {
         try
         {
             synchronized ( journalFiles )
             {
                 DiskJournalFile<V> journalFile = journalFiles.peek();
+                if ( journalFile == null )
+                {
+                    // Replay not required or succeed so start new journal
+                    journalFile = buildJournalFile();
+                    journalFiles.push( journalFile );
+                }
+
                 DiskJournalEntryFacade<V> recordEntry = DiskJournalIOUtils.prepareJournalEntry( entry, getWriter() );
 
                 Tuple<DiskJournalAppendResult, JournalRecord<V>> result = journalFile.appendRecord( recordEntry );
@@ -204,127 +358,6 @@ public class DiskJournal<V>
             {
                 listener.onFailure( entry, new SynchronousJournalException( "Failed to persist journal entry", e ) );
             }
-        }
-    }
-
-    @Override
-    public JournalBatch<V> startBatchProcess()
-    {
-        return startBatchProcess( listener );
-    }
-
-    @Override
-    public JournalBatch<V> startBatchProcess( JournalListener<V> listener )
-    {
-        return new DiskJournalBatchProcess<>( this, listener );
-    }
-
-    @Override
-    public long getLastRecordId()
-    {
-        return getRecordIdGenerator().lastGeneratedRecordId();
-    }
-
-    @Override
-    public void close()
-        throws IOException
-    {
-        synchronized ( journalFiles )
-        {
-            try
-            {
-                diskJournalWriterTask.shutdown();
-
-                // Wait for asynchronous journal writer to finish
-                shutdownLatch.await();
-
-                for ( DiskJournalFile<V> journalFile : journalFiles )
-                {
-                    journalFile.close();
-                }
-            }
-            catch ( InterruptedException e )
-            {
-
-            }
-        }
-    }
-
-    public Path getJournalingPath()
-    {
-        return journalingPath;
-    }
-
-    void commitBatchProcess( JournalBatch<V> journalBatch, List<DiskJournalEntryFacade<V>> entries, int dataSize,
-                             JournalListener<V> listener )
-        throws JournalException
-    {
-        synchronized ( journalFiles )
-        {
-            // Storing current recordId for case of rollback
-            long markedRecordId = getRecordIdGenerator().lastGeneratedRecordId();
-
-            try
-            {
-                // Calculate the file size of the batch journal file ...
-                int calculatedLogFileSize =
-                    DiskJournal.JOURNAL_FILE_HEADER_SIZE + dataSize
-                        + ( entries.size() * DiskJournal.JOURNAL_RECORD_HEADER_SIZE );
-
-                // ... and start new journal
-                DiskJournalFile<V> journalFile = buildJournalFile( calculatedLogFileSize, JOURNAL_FILE_TYPE_BATCH );
-                journalFiles.push( journalFile );
-
-                // Persist all entries to disk ...
-                List<JournalRecord<V>> records = new LinkedList<>();
-                for ( DiskJournalEntryFacade<V> entry : entries )
-                {
-                    Tuple<DiskJournalAppendResult, JournalRecord<V>> result = journalFile.appendRecord( entry );
-                    if ( result.getValue1() != DiskJournalAppendResult.APPEND_SUCCESSFUL )
-                    {
-                        throw new SynchronousJournalException( "Failed to persist journal entry" );
-                    }
-                }
-
-                // ... and if non of them failed just announce them as committed
-                for ( JournalRecord<V> record : records )
-                {
-                    listener.onCommit( record );
-                }
-            }
-            catch ( Exception e )
-            {
-                if ( listener != null )
-                {
-                    listener.onFailure( journalBatch,
-                                        new SynchronousJournalException( "Failed to persist journal batch process", e ) );
-                }
-
-                // Rollback the journal file
-                DiskJournalFile<V> journalFile = journalFiles.pop();
-                try
-                {
-                    journalFile.close();
-                    String fileName = journalFile.getFileName();
-                    Files.delete( journalingPath.resolve( fileName ) );
-                }
-                catch ( IOException ioe )
-                {
-                    throw new JournalException( "Could not rollback journal batch file", ioe );
-                }
-
-                // Rollback the recordId
-                getRecordIdGenerator().notifyHighestJournalRecordId( markedRecordId );
-            }
-        }
-    }
-
-    void pushJournalFileFromReplay( DiskJournalFile<V> diskJournalFile )
-    {
-        synchronized ( journalFiles )
-        {
-            journalFiles.push( diskJournalFile );
-            setCurrentLogNumber( diskJournalFile.getLogNumber() );
         }
     }
 

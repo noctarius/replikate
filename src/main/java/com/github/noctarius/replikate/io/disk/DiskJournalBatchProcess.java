@@ -50,7 +50,7 @@ class DiskJournalBatchProcess<V>
     public void commit()
         throws JournalException
     {
-        if ( committed.compareAndSet( false, true ) )
+        if ( !committed.compareAndSet( false, true ) )
         {
             throw new JournalException( "Batch already committed" );
         }
