@@ -85,10 +85,10 @@ class DiskJournal<V>
 
     private final int maxLogFileSize;
 
-    public DiskJournal( String name, Path journalingPath, JournalListener<V> listener, int maxLogFileSize,
-                        JournalRecordIdGenerator recordIdGenerator, JournalEntryReader<V> reader,
-                        JournalEntryWriter<V> writer, JournalNamingStrategy namingStrategy,
-                        ExecutorService listenerExecutorService )
+    DiskJournal( String name, Path journalingPath, JournalListener<V> listener, int maxLogFileSize,
+                 JournalRecordIdGenerator recordIdGenerator, JournalEntryReader<V> reader,
+                 JournalEntryWriter<V> writer, JournalNamingStrategy namingStrategy,
+                 ExecutorService listenerExecutorService )
         throws IOException
     {
         super( name, recordIdGenerator, reader, writer, namingStrategy, listenerExecutorService );
@@ -187,12 +187,6 @@ class DiskJournal<V>
     public JournalBatch<V> startBatchProcess( JournalListener<V> listener )
     {
         return new DiskJournalBatchProcess<>( this, listener );
-    }
-
-    @Override
-    public long getLastRecordId()
-    {
-        return getRecordIdGenerator().lastGeneratedRecordId();
     }
 
     @Override
@@ -423,26 +417,6 @@ class DiskJournal<V>
         {
             shutdown.compareAndSet( false, true );
             diskJournalWriter.interrupt();
-        }
-    }
-
-    private class SimpleAppendOperation
-        implements JournalOperation
-    {
-
-        protected final JournalEntry<V> entry;
-
-        protected final JournalListener<V> listener;
-
-        private SimpleAppendOperation( JournalEntry<V> entry, JournalListener<V> listener )
-        {
-            this.entry = entry;
-            this.listener = listener;
-        }
-
-        public void execute()
-        {
-            appendEntrySynchronous( entry, listener );
         }
     }
 

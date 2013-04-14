@@ -99,6 +99,12 @@ public abstract class AbstractJournal<V>
     }
 
     @Override
+    public long getLastRecordId()
+    {
+        return getRecordIdGenerator().lastGeneratedRecordId();
+    }
+
+    @Override
     public void close()
         throws IOException
     {
@@ -154,6 +160,26 @@ public abstract class AbstractJournal<V>
                 journalListener.onFailure( journalBatch, cause );
             }
         } );
+    }
+
+    protected class SimpleAppendOperation
+        implements JournalOperation
+    {
+
+        protected final JournalEntry<V> entry;
+
+        protected final JournalListener<V> listener;
+
+        public SimpleAppendOperation( JournalEntry<V> entry, JournalListener<V> listener )
+        {
+            this.entry = entry;
+            this.listener = listener;
+        }
+
+        public void execute()
+        {
+            appendEntrySynchronous( entry, listener );
+        }
     }
 
 }
