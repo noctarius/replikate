@@ -14,6 +14,8 @@ import org.slf4j.LoggerFactory;
 import com.github.noctarius.replikate.Journal;
 import com.github.noctarius.replikate.JournalRecord;
 import com.github.noctarius.replikate.exceptions.JournalException;
+import com.github.noctarius.replikate.io.util.ByteArrayBufferOutputStream;
+import com.github.noctarius.replikate.io.util.Tuple;
 
 class DiskJournalFile<V>
     implements Comparable<DiskJournalFile<V>>

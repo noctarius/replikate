@@ -11,6 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.github.noctarius.replikate.JournalEntry;
+import com.github.noctarius.replikate.io.util.ByteArrayBufferOutputStream;
 import com.github.noctarius.replikate.spi.JournalEntryReader;
 import com.github.noctarius.replikate.spi.JournalEntryWriter;
 
@@ -99,7 +100,7 @@ abstract class DiskJournalIOUtils
     {
         long nanoSeconds = System.nanoTime();
 
-        int minSize = DiskJournal.JOURNAL_RECORD_HEADER_SIZE + 100;
+        int minSize = DiskJournal.JOURNAL_RECORD_HEADER_SIZE + entryData.length;
         try ( ByteArrayOutputStream out = new ByteArrayOutputStream( minSize );
                         DataOutputStream stream = new DataOutputStream( out ) )
         {

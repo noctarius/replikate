@@ -24,6 +24,7 @@ import com.github.noctarius.replikate.JournalNamingStrategy;
 import com.github.noctarius.replikate.JournalRecord;
 import com.github.noctarius.replikate.exceptions.JournalException;
 import com.github.noctarius.replikate.exceptions.SynchronousJournalException;
+import com.github.noctarius.replikate.io.util.Tuple;
 import com.github.noctarius.replikate.spi.AbstractJournal;
 import com.github.noctarius.replikate.spi.JournalEntryReader;
 import com.github.noctarius.replikate.spi.JournalEntryWriter;

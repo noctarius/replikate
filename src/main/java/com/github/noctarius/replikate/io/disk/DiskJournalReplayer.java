@@ -14,6 +14,7 @@ import org.slf4j.LoggerFactory;
 import com.github.noctarius.replikate.JournalListener;
 import com.github.noctarius.replikate.JournalRecord;
 import com.github.noctarius.replikate.exceptions.ReplayCancellationException;
+import com.github.noctarius.replikate.io.util.Tuple;
 import com.github.noctarius.replikate.spi.JournalEntryReader;
 import com.github.noctarius.replikate.spi.ReplayNotificationResult;
 

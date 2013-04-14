@@ -1,9 +1,9 @@
-package com.github.noctarius.replikate.io.disk;
+package com.github.noctarius.replikate.io.util;
 
 import java.io.IOException;
 import java.io.OutputStream;
 
-class ByteArrayBufferOutputStream
+public class ByteArrayBufferOutputStream
     extends OutputStream
 {
 
@@ -11,7 +11,7 @@ class ByteArrayBufferOutputStream
 
     private int pos = 0;
 
-    ByteArrayBufferOutputStream( byte[] wrapped )
+    public ByteArrayBufferOutputStream( byte[] wrapped )
     {
         this.wrapped = wrapped;
     }

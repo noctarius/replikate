@@ -1,6 +1,6 @@
-package com.github.noctarius.replikate.io.disk;
+package com.github.noctarius.replikate.io.util;
 
-class Tuple<FV, SV>
+public class Tuple<FV, SV>
 {
 
     private final FV value1;
