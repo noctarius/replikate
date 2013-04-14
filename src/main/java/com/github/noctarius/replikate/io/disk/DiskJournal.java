@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -29,7 +30,7 @@ import com.github.noctarius.replikate.spi.JournalEntryWriter;
 import com.github.noctarius.replikate.spi.JournalOperation;
 import com.github.noctarius.replikate.spi.JournalRecordIdGenerator;
 
-public class DiskJournal<V>
+class DiskJournal<V>
     extends AbstractJournal<V>
 {
 
@@ -63,13 +64,17 @@ public class DiskJournal<V>
 
     private final Path journalingPath;
 
+    private final int maxLogFileSize;
+
     public DiskJournal( String name, Path journalingPath, JournalListener<V> listener, int maxLogFileSize,
                         JournalRecordIdGenerator recordIdGenerator, JournalEntryReader<V> reader,
-                        JournalEntryWriter<V> writer, JournalNamingStrategy namingStrategy )
+                        JournalEntryWriter<V> writer, JournalNamingStrategy namingStrategy,
+                        ExecutorService listenerExecutorService )
         throws IOException
     {
-        super( name, maxLogFileSize, recordIdGenerator, reader, writer, namingStrategy );
+        super( name, recordIdGenerator, reader, writer, namingStrategy, listenerExecutorService );
         this.journalingPath = journalingPath;
+        this.maxLogFileSize = maxLogFileSize;
         this.listener = listener;
 
         if ( !Files.isDirectory( journalingPath, LinkOption.NOFOLLOW_LINKS ) )
@@ -199,6 +204,11 @@ public class DiskJournal<V>
 
             }
         }
+    }
+
+    public int getMaxLogFileSize()
+    {
+        return maxLogFileSize;
     }
 
     public Path getJournalingPath()

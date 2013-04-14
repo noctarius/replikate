@@ -1,6 +1,6 @@
 package com.github.noctarius.replikate.io.disk;
 
-public enum DiskJournalAppendResult
+enum DiskJournalAppendResult
 {
 
     /** Journal entry was successfully appended */

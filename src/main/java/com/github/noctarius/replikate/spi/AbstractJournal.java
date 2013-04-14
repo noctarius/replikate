@@ -2,7 +2,6 @@ package com.github.noctarius.replikate.spi;
 
 import java.io.IOException;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicLong;
 
 import com.github.noctarius.replikate.Journal;
@@ -19,9 +18,6 @@ public abstract class AbstractJournal<V>
 
     private final int journalVersion = JOURNAL_VERSION;
 
-    private final ExecutorService listenerExecutorService =
-        Executors.newFixedThreadPool( 5, new NamedThreadFactory( "RepliKate-Listener" ) );
-
     private final AtomicLong logNumber = new AtomicLong( 0 );
 
     private final JournalRecordIdGenerator recordIdGenerator;
@@ -32,20 +28,20 @@ public abstract class AbstractJournal<V>
 
     private final JournalNamingStrategy namingStrategy;
 
-    private final int maxLogFileSize;
+    private final ExecutorService listenerExecutorService;
 
     private final String name;
 
-    protected AbstractJournal( String name, int maxLogFileSize, JournalRecordIdGenerator recordIdGenerator,
-                               JournalEntryReader<V> reader, JournalEntryWriter<V> writer,
-                               JournalNamingStrategy namingStrategy )
+    protected AbstractJournal( String name, JournalRecordIdGenerator recordIdGenerator, JournalEntryReader<V> reader,
+                               JournalEntryWriter<V> writer, JournalNamingStrategy namingStrategy,
+                               ExecutorService listenerExecutorService )
     {
         this.name = name;
-        this.maxLogFileSize = maxLogFileSize;
         this.recordIdGenerator = recordIdGenerator;
         this.reader = reader;
         this.writer = writer;
         this.namingStrategy = namingStrategy;
+        this.listenerExecutorService = listenerExecutorService;
     }
 
     @Override
@@ -94,11 +90,6 @@ public abstract class AbstractJournal<V>
     public int getJournalVersion()
     {
         return journalVersion;
-    }
-
-    public int getMaxLogFileSize()
-    {
-        return maxLogFileSize;
     }
 
     protected void setCurrentLogNumber( long logNumber )
