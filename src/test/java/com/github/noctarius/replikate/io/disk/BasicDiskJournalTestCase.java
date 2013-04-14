@@ -16,10 +16,12 @@ import org.junit.Test;
 
 import com.github.noctarius.replikate.Journal;
 import com.github.noctarius.replikate.JournalBatch;
+import com.github.noctarius.replikate.JournalConfiguration;
 import com.github.noctarius.replikate.JournalEntry;
 import com.github.noctarius.replikate.JournalListener;
 import com.github.noctarius.replikate.JournalNamingStrategy;
 import com.github.noctarius.replikate.JournalRecord;
+import com.github.noctarius.replikate.JournalSystem;
 import com.github.noctarius.replikate.SimpleJournalEntry;
 import com.github.noctarius.replikate.exceptions.JournalException;
 import com.github.noctarius.replikate.exceptions.ReplayCancellationException;
@@ -41,17 +43,19 @@ public class BasicDiskJournalTestCase
     {
         File path = prepareJournalDirectory( "createJournalFile" );
 
-        DiskJournal<TestRecord> journal =
-            new DiskJournal<>( "createJournalFile", path.toPath(), new FlushListener(), 1024 * 1024,
-                               new RecordIdGenerator(), new TestRecordReader(), new TestRecordWriter(),
-                               new NamingStrategy() );
+        JournalSystem journalSystem = JournalSystem.buildJournalSystem();
+        JournalConfiguration<TestRecord> configuration =
+            buildDiskJournalConfiguration( path.toPath(), 1024 * 1024, new TestRecordReader(), new TestRecordWriter(),
+                                           new FlushListener(), new NamingStrategy(), new RecordIdGenerator() );
+
+        Journal<TestRecord> journal = journalSystem.getJournal( "createJournalFile", configuration );
 
         journal.close();
 
         CountingFlushListener listener = new CountingFlushListener();
-        journal =
-            new DiskJournal<>( "loadBrokenJournal", path.toPath(), listener, 1024 * 1024, new RecordIdGenerator(),
-                               new TestRecordReader(), new TestRecordWriter(), new NamingStrategy() );
+        configuration.setListener( listener );
+        journal = journalSystem.getJournal( "createJournalFile", configuration );
+
         journal.close();
 
         assertEquals( 0, listener.getCount() );
@@ -63,10 +67,12 @@ public class BasicDiskJournalTestCase
     {
         File path = prepareJournalDirectory( "appendEntries" );
 
-        DiskJournal<TestRecord> journal =
-            new DiskJournal<>( "appendEntries", path.toPath(), new FlushListener(), 1024 * 1024,
-                               new RecordIdGenerator(), new TestRecordReader(), new TestRecordWriter(),
-                               new NamingStrategy() );
+        JournalSystem journalSystem = JournalSystem.buildJournalSystem();
+        JournalConfiguration<TestRecord> configuration =
+            buildDiskJournalConfiguration( path.toPath(), 1024 * 1024, new TestRecordReader(), new TestRecordWriter(),
+                                           new FlushListener(), new NamingStrategy(), new RecordIdGenerator() );
+
+        Journal<TestRecord> journal = journalSystem.getJournal( "appendEntries", configuration );
 
         JournalEntry<TestRecord> record1 = buildTestRecord( 1, "test1", (byte) 12 );
         JournalEntry<TestRecord> record2 = buildTestRecord( 2, "test2", (byte) 24 );
@@ -81,9 +87,9 @@ public class BasicDiskJournalTestCase
         journal.close();
 
         CountingFlushListener listener = new CountingFlushListener();
-        journal =
-            new DiskJournal<>( "loadBrokenJournal", path.toPath(), listener, 1024 * 1024, new RecordIdGenerator(),
-                               new TestRecordReader(), new TestRecordWriter(), new NamingStrategy() );
+        configuration.setListener( listener );
+        journal = journalSystem.getJournal( "appendEntries", configuration );
+
         journal.close();
 
         assertEquals( 4, listener.getCount() );
@@ -99,10 +105,12 @@ public class BasicDiskJournalTestCase
     {
         File path = prepareJournalDirectory( "loadBrokenJournal" );
 
-        DiskJournal<TestRecord> journal =
-            new DiskJournal<>( "loadBrokenJournal", path.toPath(), new FlushListener(), 1024 * 1024,
-                               new RecordIdGenerator(), new TestRecordReader(), new TestRecordWriter(),
-                               new NamingStrategy() );
+        JournalSystem journalSystem = JournalSystem.buildJournalSystem();
+        JournalConfiguration<TestRecord> configuration =
+            buildDiskJournalConfiguration( path.toPath(), 1024 * 1024, new TestRecordReader(), new TestRecordWriter(),
+                                           new FlushListener(), new NamingStrategy(), new RecordIdGenerator() );
+
+        Journal<TestRecord> journal = journalSystem.getJournal( "loadBrokenJournal", configuration );
 
         JournalEntry<TestRecord> record1 = buildTestRecord( 1, "test1", (byte) 12 );
         JournalEntry<TestRecord> record2 = buildTestRecord( 2, "test2", (byte) 24 );
@@ -119,21 +127,24 @@ public class BasicDiskJournalTestCase
         File file = new File( path, "journal-1" );
         RandomAccessFile raf = new RandomAccessFile( file, "rws" );
 
-        raf.seek( file.length() - 1 );
-        while ( raf.readByte() == 0 )
-        {
-            raf.seek( raf.getFilePointer() - 2 );
-        }
-        raf.seek( raf.getFilePointer() - 6 );
+        byte[] data = new byte[(int) raf.length()];
+        raf.read( data );
 
-        byte[] data = new byte[7];
+        int pos = data.length - 1;
+        while ( data[pos] == 0 )
+        {
+            pos--;
+        }
+        raf.seek( pos - 6 );
+
+        data = new byte[7];
         raf.write( data );
         raf.close();
 
         CountingFlushListener listener = new CountingFlushListener();
-        journal =
-            new DiskJournal<>( "loadBrokenJournal", path.toPath(), listener, 1024 * 1024, new RecordIdGenerator(),
-                               new TestRecordReader(), new TestRecordWriter(), new NamingStrategy() );
+        configuration.setListener( listener );
+        journal = journalSystem.getJournal( "loadBrokenJournal", configuration );
+
         journal.close();
 
         assertEquals( 3, listener.getCount() );
@@ -148,10 +159,12 @@ public class BasicDiskJournalTestCase
     {
         File path = prepareJournalDirectory( "loadShortenedJournal" );
 
-        DiskJournal<TestRecord> journal =
-            new DiskJournal<>( "loadShortenedJournal", path.toPath(), new FlushListener(), 1024 * 1024,
-                               new RecordIdGenerator(), new TestRecordReader(), new TestRecordWriter(),
-                               new NamingStrategy() );
+        JournalSystem journalSystem = JournalSystem.buildJournalSystem();
+        JournalConfiguration<TestRecord> configuration =
+            buildDiskJournalConfiguration( path.toPath(), 1024 * 1024, new TestRecordReader(), new TestRecordWriter(),
+                                           new FlushListener(), new NamingStrategy(), new RecordIdGenerator() );
+
+        Journal<TestRecord> journal = journalSystem.getJournal( "loadShortenedJournal", configuration );
 
         JournalEntry<TestRecord> record1 = buildTestRecord( 1, "test1", (byte) 12 );
         JournalEntry<TestRecord> record2 = buildTestRecord( 2, "test2", (byte) 24 );
@@ -168,21 +181,25 @@ public class BasicDiskJournalTestCase
         File file = new File( path, "journal-1" );
         RandomAccessFile raf = new RandomAccessFile( file, "rws" );
 
-        raf.seek( file.length() - 1 );
-        while ( raf.readByte() == 0 )
+        byte[] data = new byte[(int) raf.length()];
+        raf.read( data );
+
+        int pos = data.length - 1;
+        while ( data[pos] == 0 )
         {
-            raf.seek( raf.getFilePointer() - 2 );
+            pos--;
         }
-        long length = raf.getFilePointer() - 20;
+
+        long length = pos - 20;
         raf.setLength( length );
         raf.close();
 
         assertEquals( length, file.length() );
 
         CountingFlushListener listener = new CountingFlushListener();
-        journal =
-            new DiskJournal<>( "loadShortenedJournal", path.toPath(), listener, 1024 * 1024, new RecordIdGenerator(),
-                               new TestRecordReader(), new TestRecordWriter(), new NamingStrategy() );
+        configuration.setListener( listener );
+        journal = journalSystem.getJournal( "loadShortenedJournal", configuration );
+
         journal.close();
 
         assertEquals( 3, listener.getCount() );
@@ -198,9 +215,13 @@ public class BasicDiskJournalTestCase
         File path = prepareJournalDirectory( "findHolesInJournalAndAcceptIt" );
 
         RecordIdGenerator recordIdGenerator = new RecordIdGenerator();
-        DiskJournal<TestRecord> journal =
-            new DiskJournal<>( "findHolesInJournalAndAcceptIt", path.toPath(), new FlushListener(), 1024 * 1024,
-                               recordIdGenerator, new TestRecordReader(), new TestRecordWriter(), new NamingStrategy() );
+
+        JournalSystem journalSystem = JournalSystem.buildJournalSystem();
+        JournalConfiguration<TestRecord> configuration =
+            buildDiskJournalConfiguration( path.toPath(), 1024 * 1024, new TestRecordReader(), new TestRecordWriter(),
+                                           new FlushListener(), new NamingStrategy(), recordIdGenerator );
+
+        Journal<TestRecord> journal = journalSystem.getJournal( "findHolesInJournalAndAcceptIt", configuration );
 
         JournalEntry<TestRecord> record1 = buildTestRecord( 1, "test1", (byte) 12 );
         JournalEntry<TestRecord> record2 = buildTestRecord( 2, "test2", (byte) 24 );
@@ -219,10 +240,9 @@ public class BasicDiskJournalTestCase
         journal.close();
 
         CountingFlushListener listener = new CountingFlushListener();
-        journal =
-            new DiskJournal<>( "findHolesInJournalAndAcceptIt", path.toPath(), listener, 1024 * 1024,
-                               new RecordIdGenerator(), new TestRecordReader(), new TestRecordWriter(),
-                               new NamingStrategy() );
+        configuration.setListener( listener );
+        journal = journalSystem.getJournal( "findHolesInJournalAndAcceptIt", configuration );
+
         journal.close();
 
         assertEquals( 4, listener.getCount() );
@@ -239,9 +259,13 @@ public class BasicDiskJournalTestCase
         File path = prepareJournalDirectory( "findHolesInJournalAndDeclineIt" );
 
         RecordIdGenerator recordIdGenerator = new RecordIdGenerator();
-        DiskJournal<TestRecord> journal =
-            new DiskJournal<>( "findHolesInJournalAndDeclineIt", path.toPath(), new FlushListener(), 1024 * 1024,
-                               recordIdGenerator, new TestRecordReader(), new TestRecordWriter(), new NamingStrategy() );
+
+        JournalSystem journalSystem = JournalSystem.buildJournalSystem();
+        JournalConfiguration<TestRecord> configuration =
+            buildDiskJournalConfiguration( path.toPath(), 1024 * 1024, new TestRecordReader(), new TestRecordWriter(),
+                                           new FlushListener(), new NamingStrategy(), recordIdGenerator );
+
+        Journal<TestRecord> journal = journalSystem.getJournal( "findHolesInJournalAndDeclineIt", configuration );
 
         JournalEntry<TestRecord> record1 = buildTestRecord( 1, "test1", (byte) 12 );
         JournalEntry<TestRecord> record2 = buildTestRecord( 2, "test2", (byte) 24 );
@@ -262,10 +286,8 @@ public class BasicDiskJournalTestCase
         try
         {
             CountingFlushListener listener = new CountingFlushListener( ReplayNotificationResult.Except );
-            journal =
-                new DiskJournal<>( "findHolesInJournalAndDeclineIt", path.toPath(), listener, 1024 * 1024,
-                                   new RecordIdGenerator(), new TestRecordReader(), new TestRecordWriter(),
-                                   new NamingStrategy() );
+            configuration.setListener( listener );
+            journal = journalSystem.getJournal( "findHolesInJournalAndDeclineIt", configuration );
         }
         catch ( JournalException e )
         {

@@ -14,9 +14,11 @@ import org.junit.Test;
 
 import com.github.noctarius.replikate.Journal;
 import com.github.noctarius.replikate.JournalBatch;
+import com.github.noctarius.replikate.JournalConfiguration;
 import com.github.noctarius.replikate.JournalEntry;
 import com.github.noctarius.replikate.JournalListener;
 import com.github.noctarius.replikate.JournalRecord;
+import com.github.noctarius.replikate.JournalSystem;
 import com.github.noctarius.replikate.SimpleJournalEntry;
 import com.github.noctarius.replikate.exceptions.JournalException;
 import com.github.noctarius.replikate.io.disk.BasicDiskJournalTestCase.NamingStrategy;
@@ -36,9 +38,12 @@ public class OverflowTestCase
         File path = prepareJournalDirectory( "testSimpleFileOverflow" );
 
         RecordIdGenerator recordIdGenerator = new RecordIdGenerator();
-        DiskJournal<byte[]> journal =
-            new DiskJournal<>( "testSimpleFileOverflow", path.toPath(), new FlushListener(), 1024, recordIdGenerator,
-                               new RecordReader(), new RecordWriter(), new NamingStrategy() );
+        JournalSystem journalSystem = JournalSystem.buildJournalSystem();
+        JournalConfiguration<byte[]> configuration =
+            buildDiskJournalConfiguration( path.toPath(), 1024, new RecordReader(), new RecordWriter(),
+                                           new FlushListener(), new NamingStrategy(), recordIdGenerator );
+
+        Journal<byte[]> journal = journalSystem.getJournal( "testSimpleFileOverflow", configuration );
 
         JournalEntry<byte[]> record1 = buildTestRecord( (byte) 1 );
         JournalEntry<byte[]> record2 = buildTestRecord( (byte) 2 );
@@ -53,9 +58,8 @@ public class OverflowTestCase
         journal.close();
 
         CountingFlushListener listener = new CountingFlushListener( ReplayNotificationResult.Except );
-        journal =
-            new DiskJournal<>( "testSimpleFileOverflow", path.toPath(), listener, 1024 * 1024, new RecordIdGenerator(),
-                               new RecordReader(), new RecordWriter(), new NamingStrategy() );
+        configuration.setListener( listener );
+        journal = journalSystem.getJournal( "testSimpleFileOverflow", configuration );
 
         assertEquals( 3, listener.count );
 
@@ -75,9 +79,12 @@ public class OverflowTestCase
         File path = prepareJournalDirectory( "testMultipleSimpleFileOverflow" );
 
         RecordIdGenerator recordIdGenerator = new RecordIdGenerator();
-        DiskJournal<byte[]> journal =
-            new DiskJournal<>( "testMultipleSimpleFileOverflow", path.toPath(), new FlushListener(), 4096,
-                               recordIdGenerator, new RecordReader(), new RecordWriter(), new NamingStrategy() );
+        JournalSystem journalSystem = JournalSystem.buildJournalSystem();
+        JournalConfiguration<byte[]> configuration =
+            buildDiskJournalConfiguration( path.toPath(), 4096, new RecordReader(), new RecordWriter(),
+                                           new FlushListener(), new NamingStrategy(), recordIdGenerator );
+
+        Journal<byte[]> journal = journalSystem.getJournal( "testMultipleSimpleFileOverflow", configuration );
 
         @SuppressWarnings( "unchecked" )
         JournalEntry<byte[]>[] records = new JournalEntry[50];
@@ -90,9 +97,8 @@ public class OverflowTestCase
         journal.close();
 
         CountingFlushListener listener = new CountingFlushListener( ReplayNotificationResult.Except );
-        journal =
-            new DiskJournal<>( "testMultipleSimpleFileOverflow", path.toPath(), listener, 1024 * 1024,
-                               new RecordIdGenerator(), new RecordReader(), new RecordWriter(), new NamingStrategy() );
+        configuration.setListener( listener );
+        journal = journalSystem.getJournal( "testMultipleSimpleFileOverflow", configuration );
 
         assertEquals( records.length, listener.count );
 
@@ -110,9 +116,12 @@ public class OverflowTestCase
         File path = prepareJournalDirectory( "testFullFileOverflow" );
 
         RecordIdGenerator recordIdGenerator = new RecordIdGenerator();
-        DiskJournal<byte[]> journal =
-            new DiskJournal<>( "testFullFileOverflow", path.toPath(), new FlushListener(), 1024, recordIdGenerator,
-                               new RecordReader(), new RecordWriter(), new NamingStrategy() );
+        JournalSystem journalSystem = JournalSystem.buildJournalSystem();
+        JournalConfiguration<byte[]> configuration =
+            buildDiskJournalConfiguration( path.toPath(), 1024, new RecordReader(), new RecordWriter(),
+                                           new FlushListener(), new NamingStrategy(), recordIdGenerator );
+
+        Journal<byte[]> journal = journalSystem.getJournal( "testFullFileOverflow", configuration );
 
         @SuppressWarnings( "unchecked" )
         JournalEntry<byte[]>[] records = new JournalEntry[5];
@@ -141,9 +150,8 @@ public class OverflowTestCase
         raf.close();
 
         CountingFlushListener listener = new CountingFlushListener( ReplayNotificationResult.Except );
-        journal =
-            new DiskJournal<>( "testFullFileOverflow", path.toPath(), listener, 1024 * 1024, new RecordIdGenerator(),
-                               new RecordReader(), new RecordWriter(), new NamingStrategy() );
+        configuration.setListener( listener );
+        journal = journalSystem.getJournal( "testFullFileOverflow", configuration );
 
         assertEquals( records.length, listener.count );
 

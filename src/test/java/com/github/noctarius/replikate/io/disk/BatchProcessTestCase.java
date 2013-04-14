@@ -8,8 +8,10 @@ import org.junit.Test;
 
 import com.github.noctarius.replikate.Journal;
 import com.github.noctarius.replikate.JournalBatch;
+import com.github.noctarius.replikate.JournalConfiguration;
 import com.github.noctarius.replikate.JournalEntry;
 import com.github.noctarius.replikate.JournalRecord;
+import com.github.noctarius.replikate.JournalSystem;
 import com.github.noctarius.replikate.SimpleJournalEntry;
 import com.github.noctarius.replikate.exceptions.JournalException;
 import com.github.noctarius.replikate.io.disk.BasicDiskJournalTestCase.NamingStrategy;
@@ -29,9 +31,11 @@ public class BatchProcessTestCase
         File path = prepareJournalDirectory( "testSimpleBatchProcessSuccessful" );
 
         RecordIdGenerator recordIdGenerator = new RecordIdGenerator();
-        Journal<byte[]> journal =
-            new DiskJournal<>( "testSimpleBatchProcessSuccessful", path.toPath(), new FlushListener(), 1024,
-                               recordIdGenerator, new RecordReader(), new RecordWriter(), new NamingStrategy() );
+        JournalSystem journalSystem = JournalSystem.buildJournalSystem();
+        JournalConfiguration<byte[]> configuration =
+            buildDiskJournalConfiguration( path.toPath(), 1024, new RecordReader(), new RecordWriter(),
+                                           new FlushListener(), new NamingStrategy(), recordIdGenerator );
+        Journal<byte[]> journal = journalSystem.getJournal( "testSimpleBatchProcessSuccessful", configuration );
 
         JournalEntry<byte[]> record1 = buildTestRecord( (byte) 1 );
         JournalEntry<byte[]> record2 = buildTestRecord( (byte) 2 );
@@ -81,9 +85,12 @@ public class BatchProcessTestCase
         };
 
         RecordIdGenerator recordIdGenerator = new RecordIdGenerator();
-        Journal<byte[]> journal =
-            new DiskJournal<>( "testSimpleBatchProcessAsyncSuccessful", path.toPath(), flushListener, 1024,
-                               recordIdGenerator, new RecordReader(), new RecordWriter(), new NamingStrategy() );
+        JournalSystem journalSystem = JournalSystem.buildJournalSystem();
+        JournalConfiguration<byte[]> configuration =
+            buildDiskJournalConfiguration( path.toPath(), 1024, new RecordReader(), new RecordWriter(), flushListener,
+                                           new NamingStrategy(), recordIdGenerator );
+
+        Journal<byte[]> journal = journalSystem.getJournal( "testSimpleBatchProcessAsyncSuccessful", configuration );
 
         JournalEntry<byte[]> record1 = buildTestRecord( (byte) 1 );
         JournalEntry<byte[]> record2 = buildTestRecord( (byte) 2 );
@@ -106,9 +113,12 @@ public class BatchProcessTestCase
         File path = prepareJournalDirectory( "testSimpleBatchProcessAfterClose" );
 
         RecordIdGenerator recordIdGenerator = new RecordIdGenerator();
-        Journal<byte[]> journal =
-            new DiskJournal<>( "testSimpleBatchProcessAfterClose", path.toPath(), new FlushListener(), 1024,
-                               recordIdGenerator, new RecordReader(), new RecordWriter(), new NamingStrategy() );
+        JournalSystem journalSystem = JournalSystem.buildJournalSystem();
+        JournalConfiguration<byte[]> configuration =
+            buildDiskJournalConfiguration( path.toPath(), 1024, new RecordReader(), new RecordWriter(),
+                                           new FlushListener(), new NamingStrategy(), recordIdGenerator );
+
+        Journal<byte[]> journal = journalSystem.getJournal( "testSimpleBatchProcessAfterClose", configuration );
 
         JournalEntry<byte[]> record1 = buildTestRecord( (byte) 1 );
         JournalEntry<byte[]> record2 = buildTestRecord( (byte) 2 );

@@ -15,7 +15,7 @@ public class DiskJournalFactory<V>
 
     public static final JournalFactory<?> DEFAULT_INSTANCE = new DiskJournalFactory<>();
 
-    private static final int MIN_DISKJOURNAL_FILE_SIZE = 1024 * 1024;
+    private static final int MIN_DISKJOURNAL_FILE_SIZE = 1024;
 
     @Override
     public Journal<V> buildJournal( String name, JournalConfiguration<V> configuration,

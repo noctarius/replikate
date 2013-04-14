@@ -8,6 +8,13 @@ import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 
+import com.github.noctarius.replikate.JournalConfiguration;
+import com.github.noctarius.replikate.JournalListener;
+import com.github.noctarius.replikate.JournalNamingStrategy;
+import com.github.noctarius.replikate.spi.JournalEntryReader;
+import com.github.noctarius.replikate.spi.JournalEntryWriter;
+import com.github.noctarius.replikate.spi.JournalRecordIdGenerator;
+
 public abstract class AbstractJournalTestCase
 {
 
@@ -41,4 +48,24 @@ public abstract class AbstractJournalTestCase
         path.mkdirs();
         return path;
     }
+
+    protected <V> JournalConfiguration<V> buildDiskJournalConfiguration( Path journalingPath, int maxLogFileSize,
+                                                                         JournalEntryReader<V> reader,
+                                                                         JournalEntryWriter<V> writer,
+                                                                         JournalListener<V> listener,
+                                                                         JournalNamingStrategy namingStrategy,
+                                                                         JournalRecordIdGenerator recordIdGenerator )
+    {
+        DiskJournalConfiguration<V> configuration = new DiskJournalConfiguration<>();
+        configuration.setEntryReader( reader );
+        configuration.setEntryWriter( writer );
+        configuration.setJournalingPath( journalingPath );
+        configuration.setListener( listener );
+        configuration.setMaxLogFileSize( maxLogFileSize );
+        configuration.setNamingStrategy( namingStrategy );
+        configuration.setRecordIdGenerator( recordIdGenerator );
+
+        return configuration;
+    }
+
 }
