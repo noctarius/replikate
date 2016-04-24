@@ -22,15 +22,11 @@ class DiskJournalFileHeader {
 
     static final byte[] MAGIC_NUMBER = {(byte) 0xFE, (byte) 0xEE, (byte) 0xEE, (byte) 0xEF};
 
-    private final int version;
-
-    private final int maxLogFileSize;
-
-    private final long logFileNumber;
-
-    private final byte type;
-
     private final int firstDataOffset;
+    private final int maxLogFileSize;
+    private final long logFileNumber;
+    private final int version;
+    private final byte type;
 
     DiskJournalFileHeader(int version, int maxLogFileSize, long logFileNumber, byte type) {
         this(version, maxLogFileSize, logFileNumber, type, DiskJournal.JOURNAL_FILE_HEADER_SIZE);
@@ -48,19 +44,19 @@ class DiskJournalFileHeader {
         return version;
     }
 
-    public int getMaxLogFileSize() {
+    int getMaxLogFileSize() {
         return maxLogFileSize;
     }
 
-    public long getLogNumber() {
+    long getLogNumber() {
         return logFileNumber;
     }
 
-    public byte getType() {
+    byte getType() {
         return type;
     }
 
-    public int getFirstDataOffset() {
+    int getFirstDataOffset() {
         return firstDataOffset;
     }
 

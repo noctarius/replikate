@@ -33,30 +33,27 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public abstract class AbstractJournalSystem
+public class SimpleJournalSystem
         implements JournalSystem {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(AbstractJournalSystem.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(SimpleJournalSystem.class);
 
     private final Set<Journal<?>> journals = Collections.newSetFromMap(new ConcurrentHashMap<>());
-
     private final AtomicBoolean shutdown = new AtomicBoolean(false);
 
     private final ExecutorService listenerExecutorService;
-
     private final boolean externalExecutorService;
 
-    public AbstractJournalSystem(ExecutorService listenerExecutorService) {
+    public SimpleJournalSystem(ExecutorService listenerExecutorService) {
         this.externalExecutorService = listenerExecutorService != null;
-        this.listenerExecutorService = this.externalExecutorService ? listenerExecutorService : Executors
-                .newFixedThreadPool(5, new NamedThreadFactory("RepliKate-Listener"));
+        this.listenerExecutorService = this.externalExecutorService ? listenerExecutorService //
+                : Executors.newSingleThreadExecutor(new NamedThreadFactory("RepliKate-Listener"));
     }
 
     @Override
@@ -71,7 +68,7 @@ public abstract class AbstractJournalSystem
 
         switch (journalStrategy) {
             case DiskJournal:
-                return getJournal(name, (JournalFactory<V>) DiskJournalFactory.DEFAULT_INSTANCE, configuration);
+                return getJournal(name, DiskJournalFactory.defaultInstance(), configuration);
 
             case AMQPJournal:
                 throw new UnsupportedOperationException("AMQP journal not yet implemented");
@@ -97,14 +94,13 @@ public abstract class AbstractJournalSystem
     @Override
     public void shutdown() {
         if (shutdown.compareAndSet(false, true)) {
-            Iterator<Journal<?>> iterator = journals.iterator();
-            while (iterator.hasNext()) {
+            journals.stream().forEach(j -> {
                 try {
-                    iterator.next().close();
+                    j.close();
                 } catch (IOException e) {
                     LOGGER.error("Problem while shutdown of JournalSystem", e);
                 }
-            }
+            });
         }
 
         if (!externalExecutorService) {
@@ -112,7 +108,7 @@ public abstract class AbstractJournalSystem
         }
     }
 
-    public class JournalProxy<V>
+    private class JournalProxy<V>
             implements Journal<V> {
 
         private final AtomicBoolean closed = new AtomicBoolean(false);

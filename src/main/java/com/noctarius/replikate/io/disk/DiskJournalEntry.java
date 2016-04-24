@@ -28,7 +28,7 @@ class DiskJournalEntry<V>
      */
     volatile byte[] cachedData = null;
 
-    public DiskJournalEntry(V value, byte type) {
+    DiskJournalEntry(V value, byte type) {
         super(value, type);
     }
 

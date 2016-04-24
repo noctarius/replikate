@@ -38,15 +38,10 @@ public abstract class AbstractJournal<V>
     private final AtomicLong logNumber = new AtomicLong(0);
 
     private final JournalRecordIdGenerator recordIdGenerator;
-
-    private final JournalEntryReader<V> reader;
-
-    private final JournalEntryWriter<V> writer;
-
-    private final JournalNamingStrategy namingStrategy;
-
     private final ExecutorService listenerExecutorService;
-
+    private final JournalNamingStrategy namingStrategy;
+    private final JournalEntryWriter<V> writer;
+    private final JournalEntryReader<V> reader;
     private final String name;
 
     protected AbstractJournal(String name, JournalRecordIdGenerator recordIdGenerator, JournalEntryReader<V> reader,
@@ -112,37 +107,19 @@ public abstract class AbstractJournal<V>
     }
 
     protected void onCommit(final JournalListener<V> journalListener, final JournalRecord<V> record) {
-        listenerExecutorService.execute(new Runnable() {
-
-            @Override
-            public void run() {
-                journalListener.onCommit(record);
-            }
-        });
+        listenerExecutorService.execute(() -> journalListener.onCommit(record));
     }
 
     protected void onFailure(final JournalListener<V> journalListener, final JournalEntry<V> entry,
                              final JournalException cause) {
 
-        listenerExecutorService.execute(new Runnable() {
-
-            @Override
-            public void run() {
-                journalListener.onFailure(entry, cause);
-            }
-        });
+        listenerExecutorService.execute(() -> journalListener.onFailure(entry, cause));
     }
 
     protected void onFailure(final JournalListener<V> journalListener, final JournalBatch<V> journalBatch,
                              final JournalException cause) {
 
-        listenerExecutorService.execute(new Runnable() {
-
-            @Override
-            public void run() {
-                journalListener.onFailure(journalBatch, cause);
-            }
-        });
+        listenerExecutorService.execute(() -> journalListener.onFailure(journalBatch, cause));
     }
 
     protected class SimpleAppendOperation

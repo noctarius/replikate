@@ -18,23 +18,23 @@
  */
 package com.noctarius.replikate.io.util;
 
-public class Tuple<FV, SV> {
+public class Tuple<L, R> {
 
-    private final FV value1;
+    private final L left;
 
-    private final SV value2;
+    private final R right;
 
-    public Tuple(FV value1, SV value2) {
-        this.value1 = value1;
-        this.value2 = value2;
+    public Tuple(L left, R right) {
+        this.left = left;
+        this.right = right;
     }
 
-    public FV getValue1() {
-        return value1;
+    public L getLeft() {
+        return left;
     }
 
-    public SV getValue2() {
-        return value2;
+    public R getRight() {
+        return right;
     }
 
 }

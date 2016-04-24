@@ -18,8 +18,8 @@
  */
 package com.noctarius.replikate;
 
-import com.noctarius.replikate.spi.AbstractJournalSystem;
 import com.noctarius.replikate.spi.JournalFactory;
+import com.noctarius.replikate.spi.SimpleJournalSystem;
 
 import java.util.concurrent.ExecutorService;
 
@@ -38,8 +38,7 @@ public interface JournalSystem {
     }
 
     static JournalSystem newJournalSystem(ExecutorService listenerExecutorService) {
-        return new AbstractJournalSystem(listenerExecutorService) {
-        };
+        return new SimpleJournalSystem(listenerExecutorService);
     }
 
 }

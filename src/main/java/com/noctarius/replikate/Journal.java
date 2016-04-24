@@ -27,7 +27,7 @@ import java.io.IOException;
 
 public interface Journal<V> {
 
-    public static final int JOURNAL_VERSION = 1;
+    int JOURNAL_VERSION = 1;
 
     String getName();
 

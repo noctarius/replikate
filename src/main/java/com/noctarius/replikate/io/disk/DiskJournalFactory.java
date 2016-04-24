@@ -20,11 +20,17 @@ package com.noctarius.replikate.io.disk;
 
 import com.noctarius.replikate.Journal;
 import com.noctarius.replikate.JournalConfiguration;
+import com.noctarius.replikate.JournalListener;
+import com.noctarius.replikate.JournalNamingStrategy;
 import com.noctarius.replikate.exceptions.JournalConfigurationException;
+import com.noctarius.replikate.spi.JournalEntryReader;
+import com.noctarius.replikate.spi.JournalEntryWriter;
 import com.noctarius.replikate.spi.JournalFactory;
+import com.noctarius.replikate.spi.JournalRecordIdGenerator;
 import com.noctarius.replikate.spi.Preconditions;
 
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.concurrent.ExecutorService;
 
 public class DiskJournalFactory<V>
@@ -32,25 +38,38 @@ public class DiskJournalFactory<V>
 
     public static final JournalFactory<?> DEFAULT_INSTANCE = new DiskJournalFactory<>();
 
-    private static final int MIN_DISKJOURNAL_FILE_SIZE = 1024;
+    private static final int MIN_DISK_JOURNAL_FILE_SIZE = 1024;
 
     @Override
     public Journal<V> buildJournal(String name, JournalConfiguration<V> configuration, ExecutorService listenerExecutorService) {
         Preconditions.checkType(configuration, DiskJournalConfiguration.class, "configuration");
         DiskJournalConfiguration<V> diskConfig = (DiskJournalConfiguration<V>) configuration;
 
-        Preconditions.notNull(diskConfig.getJournalingPath(), "configuration.journalingPath");
+        Path journalingPath = diskConfig.getJournalPath();
+        JournalListener<V> listener = diskConfig.getListener();
+        int maxLogFileSize = diskConfig.getMaxLogFileSize();
+        JournalRecordIdGenerator recordIdGenerator = diskConfig.getRecordIdGenerator();
+        JournalEntryReader<V> entryReader = diskConfig.getEntryReader();
+        JournalEntryWriter<V> entryWriter = diskConfig.getEntryWriter();
+        JournalNamingStrategy namingStrategy = diskConfig.getNamingStrategy();
 
-        if (diskConfig.getMaxLogFileSize() < MIN_DISKJOURNAL_FILE_SIZE) {
-            throw new IllegalArgumentException("configuration.maxLogFileSize must not be below " + MIN_DISKJOURNAL_FILE_SIZE);
+        Preconditions.notNull(journalingPath, "configuration.journalingPath");
+
+        if (maxLogFileSize < MIN_DISK_JOURNAL_FILE_SIZE) {
+            throw new IllegalArgumentException("configuration.maxLogFileSize must not be below " + MIN_DISK_JOURNAL_FILE_SIZE);
         }
 
         try {
-            return new DiskJournal<>(name, diskConfig.getJournalingPath(), diskConfig.getListener(),
-                    diskConfig.getMaxLogFileSize(), diskConfig.getRecordIdGenerator(), diskConfig.getEntryReader(),
-                    diskConfig.getEntryWriter(), diskConfig.getNamingStrategy(), listenerExecutorService);
+            return new DiskJournal<>(name, journalingPath, listener, maxLogFileSize, recordIdGenerator, entryReader, entryWriter,
+                    namingStrategy, listenerExecutorService);
+
         } catch (IOException e) {
             throw new JournalConfigurationException("Error while configuring the journal", e);
         }
     }
+
+    public static <V> JournalFactory<V> defaultInstance() {
+        return (JournalFactory<V>) DEFAULT_INSTANCE;
+    }
+
 }

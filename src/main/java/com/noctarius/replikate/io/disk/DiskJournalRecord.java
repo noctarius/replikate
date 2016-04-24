@@ -25,7 +25,6 @@ class DiskJournalRecord<V>
         implements JournalRecord<V> {
 
     private final JournalEntry<V> entry;
-
     private final long recordId;
 
     DiskJournalRecord(JournalEntry<V> entry, long recordId) {

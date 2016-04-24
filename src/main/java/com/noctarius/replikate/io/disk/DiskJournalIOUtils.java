@@ -32,21 +32,19 @@ import java.io.OutputStream;
 import java.io.RandomAccessFile;
 import java.util.Arrays;
 
-abstract class DiskJournalIOUtils {
+enum DiskJournalIOUtils {
+    ;
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DiskJournalIOUtils.class);
-
-    private DiskJournalIOUtils() {
-    }
 
     static DiskJournalFileHeader createJournal(RandomAccessFile raf, DiskJournalFileHeader header)
             throws IOException {
 
         long nanoSeconds = System.nanoTime();
-        byte[] prefiller = new byte[header.getMaxLogFileSize()];
-        Arrays.fill(prefiller, (byte) 0);
+        byte[] allocator = new byte[header.getMaxLogFileSize()];
+        Arrays.fill(allocator, (byte) 0);
 
-        try (ByteArrayBufferOutputStream buffer = new ByteArrayBufferOutputStream(prefiller);
+        try (ByteArrayBufferOutputStream buffer = new ByteArrayBufferOutputStream(allocator);
              DataOutputStream stream = new DataOutputStream(buffer)) {
             stream.write(DiskJournalFileHeader.MAGIC_NUMBER);
             stream.writeInt(header.getVersion());
@@ -56,7 +54,7 @@ abstract class DiskJournalIOUtils {
             stream.writeInt(header.getFirstDataOffset());
         }
 
-        raf.write(prefiller);
+        raf.write(allocator);
         raf.seek(DiskJournal.JOURNAL_FILE_HEADER_SIZE);
 
         LOGGER.trace("DiskJournalIOUtils::createJournal took {}ns", (System.nanoTime() - nanoSeconds));
@@ -85,13 +83,16 @@ abstract class DiskJournalIOUtils {
     static <V> DiskJournalEntryFacade<V> prepareJournalEntry(JournalEntry<V> entry, JournalEntryWriter<V> writer)
             throws IOException {
 
-        long nanoSeconds = System.nanoTime();
+        long nanoSeconds = 0;
+        if (LOGGER.isDebugEnabled()) {
+            nanoSeconds = System.nanoTime();
+        }
 
-        DiskJournalEntryFacade<V> journalEntry = (entry instanceof DiskJournalEntryFacade) ? (DiskJournalEntryFacade<V>) entry : new DiskJournalEntryFacade<>(
-                entry);
+        DiskJournalEntryFacade<V> journalEntry = getDiskJournalFacade(entry);
         if (journalEntry.cachedData == null) {
             try (ByteArrayOutputStream out = new ByteArrayOutputStream(100);
                  DataOutputStream stream = new DataOutputStream(out)) {
+
                 writer.writeJournalEntry(entry, stream);
                 journalEntry.cachedData = out.toByteArray();
             }
@@ -104,14 +105,23 @@ abstract class DiskJournalIOUtils {
         return journalEntry;
     }
 
+    private static <V> DiskJournalEntryFacade<V> getDiskJournalFacade(JournalEntry<V> entry) {
+        return (entry instanceof DiskJournalEntryFacade) //
+                ? (DiskJournalEntryFacade<V>) entry : new DiskJournalEntryFacade<>(entry);
+    }
+
     static <V> void writeRecord(DiskJournalRecord<V> record, byte[] entryData, RandomAccessFile raf)
             throws IOException {
 
-        long nanoSeconds = System.nanoTime();
+        long nanoSeconds = 0;
+        if (LOGGER.isDebugEnabled()) {
+            nanoSeconds = System.nanoTime();
+        }
 
         int minSize = DiskJournal.JOURNAL_RECORD_HEADER_SIZE + entryData.length;
         try (ByteArrayOutputStream out = new ByteArrayOutputStream(minSize);
              DataOutputStream stream = new DataOutputStream(out)) {
+
             int recordLength = DiskJournal.JOURNAL_RECORD_HEADER_SIZE + entryData.length;
 
             stream.writeInt(recordLength);
@@ -128,7 +138,10 @@ abstract class DiskJournalIOUtils {
     static <V> void prepareBulkRecord(DiskJournalRecord<V> record, byte[] entryData, OutputStream out)
             throws IOException {
 
-        long nanoSeconds = System.nanoTime();
+        long nanoSeconds = 0;
+        if (LOGGER.isDebugEnabled()) {
+            nanoSeconds = System.nanoTime();
+        }
 
         try (DataOutputStream stream = new DataOutputStream(out)) {
             int recordLength = DiskJournal.JOURNAL_RECORD_HEADER_SIZE + entryData.length;
@@ -159,6 +172,7 @@ abstract class DiskJournalIOUtils {
             raf.readFully(entryData);
 
             return new DiskJournalRecord<>(reader.readJournalEntry(recordId, type, entryData), recordId);
+
         } catch (IOException e) {
             // Will never throw IOException itself since pos > 0 < maxLength
             raf.seek(pos);

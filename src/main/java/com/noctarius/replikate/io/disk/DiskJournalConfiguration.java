@@ -25,16 +25,16 @@ import java.nio.file.Path;
 public class DiskJournalConfiguration<V>
         extends JournalConfiguration<V> {
 
-    private Path journalingPath;
+    private Path journalPath;
 
     private int maxLogFileSize;
 
-    public Path getJournalingPath() {
-        return journalingPath;
+    public Path getJournalPath() {
+        return journalPath;
     }
 
-    public void setJournalingPath(Path journalingPath) {
-        this.journalingPath = journalingPath;
+    public void setJournalPath(Path journalPath) {
+        this.journalPath = journalPath;
     }
 
     public int getMaxLogFileSize() {

@@ -71,7 +71,7 @@ public abstract class AbstractJournalTestCase {
         DiskJournalConfiguration<V> configuration = new DiskJournalConfiguration<>();
         configuration.setEntryReader(reader);
         configuration.setEntryWriter(writer);
-        configuration.setJournalingPath(journalingPath);
+        configuration.setJournalPath(journalingPath);
         configuration.setListener(listener);
         configuration.setMaxLogFileSize(maxLogFileSize);
         configuration.setNamingStrategy(namingStrategy);

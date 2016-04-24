@@ -48,59 +48,51 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import static com.noctarius.replikate.io.disk.DiskJournalIOUtils.prepareJournalEntry;
+
 class DiskJournal<V>
         extends AbstractJournal<V> {
 
-    public static final int JOURNAL_FILE_HEADER_SIZE = 25;
+    static final int JOURNAL_FILE_HEADER_SIZE = 25;
+    static final int JOURNAL_RECORD_HEADER_SIZE = 17;
 
-    public static final int JOURNAL_RECORD_HEADER_SIZE = 17;
+    static final byte JOURNAL_FILE_TYPE_DEFAULT = 1;
+    static final byte JOURNAL_FILE_TYPE_OVERFLOW = 2;
+    static final byte JOURNAL_FILE_TYPE_BATCH = 3;
 
-    public static final int JOURNAL_OVERFLOW_OVERHEAD_SIZE = JOURNAL_FILE_HEADER_SIZE + JOURNAL_RECORD_HEADER_SIZE;
-
-    public static final byte JOURNAL_FILE_TYPE_DEFAULT = 1;
-
-    public static final byte JOURNAL_FILE_TYPE_OVERFLOW = 2;
-
-    public static final byte JOURNAL_FILE_TYPE_BATCH = 3;
+    private static final int JOURNAL_OVERFLOW_OVERHEAD_SIZE = JOURNAL_FILE_HEADER_SIZE + JOURNAL_RECORD_HEADER_SIZE;
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DiskJournal.class);
 
     private final DiskJournalWriterTask diskJournalWriterTask = new DiskJournalWriterTask();
-
-    private final Deque<DiskJournalFile<V>> journalFiles = new ConcurrentLinkedDeque<>();
-
     private final BlockingQueue<JournalOperation> journalQueue = new LinkedBlockingQueue<>();
-
+    private final Deque<DiskJournalFile<V>> journalFiles = new ConcurrentLinkedDeque<>();
     private final CountDownLatch shutdownLatch = new CountDownLatch(1);
-
     private final AtomicBoolean shutdown = new AtomicBoolean(false);
 
-    private final Thread diskJournalWriter;
-
     private final JournalListener<V> listener;
-
-    private final Path journalingPath;
-
+    private final Thread diskJournalWriter;
+    private final Path journalPath;
     private final int maxLogFileSize;
 
-    DiskJournal(String name, Path journalingPath, JournalListener<V> listener, int maxLogFileSize,
+    DiskJournal(String name, Path journalPath, JournalListener<V> listener, int maxLogFileSize,
                 JournalRecordIdGenerator recordIdGenerator, JournalEntryReader<V> reader, JournalEntryWriter<V> writer,
                 JournalNamingStrategy namingStrategy, ExecutorService listenerExecutorService)
             throws IOException {
 
         super(name, recordIdGenerator, reader, writer, namingStrategy, listenerExecutorService);
-        this.journalingPath = journalingPath;
+        this.journalPath = journalPath;
         this.maxLogFileSize = maxLogFileSize;
         this.listener = listener;
 
-        if (!Files.isDirectory(journalingPath, LinkOption.NOFOLLOW_LINKS)) {
-            throw new IllegalArgumentException("journalingPath is not a directory");
+        if (!Files.isDirectory(journalPath, LinkOption.NOFOLLOW_LINKS)) {
+            throw new IllegalArgumentException("journalPath is not a directory");
         }
 
-        LOGGER.info("{}: DiskJournal starting up in {}...", getName(), journalingPath.toFile().getAbsolutePath());
+        LOGGER.info("{}: DiskJournal starting up in {}...", getName(), journalPath.toFile().getAbsolutePath());
 
         boolean needsReplay = false;
-        File path = journalingPath.toFile();
+        File path = journalPath.toFile();
         for (File child : path.listFiles()) {
             if (child.isDirectory()) {
                 continue;
@@ -141,7 +133,7 @@ class DiskJournal<V>
         }
 
         try {
-            DiskJournalEntryFacade<V> journalEntry = DiskJournalIOUtils.prepareJournalEntry(entry, getWriter());
+            DiskJournalEntryFacade<V> journalEntry = prepareJournalEntry(entry, getWriter());
             journalQueue.offer(new SimpleAppendOperation(journalEntry, listener));
         } catch (IOException e) {
             throw new SynchronousJournalException("Could not prepare journal entry", e);
@@ -195,17 +187,16 @@ class DiskJournal<V>
                     journalFile.close();
                 }
             } catch (InterruptedException e) {
-
             }
         }
     }
 
-    public int getMaxLogFileSize() {
+    int getMaxLogFileSize() {
         return maxLogFileSize;
     }
 
-    public Path getJournalingPath() {
-        return journalingPath;
+    Path getJournalPath() {
+        return journalPath;
     }
 
     void commitBatchProcess(final JournalBatch<V> journalBatch, final List<DiskJournalEntryFacade<V>> entries, final int dataSize,
@@ -228,8 +219,7 @@ class DiskJournal<V>
         }
 
         CountDownLatch synchronizer = new CountDownLatch(1);
-        BatchCommitSyncOperation operation = new BatchCommitSyncOperation(entries, journalBatch, dataSize, listener,
-                synchronizer);
+        BatchCommitSyncOperation operation = newBatchCommitSyncOperation(journalBatch, entries, dataSize, listener, synchronizer);
         journalQueue.offer(operation);
 
         try {
@@ -249,6 +239,13 @@ class DiskJournal<V>
         }
     }
 
+    private BatchCommitSyncOperation newBatchCommitSyncOperation(JournalBatch<V> journalBatch,
+                                                                 List<DiskJournalEntryFacade<V>> entries, int dataSize,
+                                                                 JournalListener<V> listener, CountDownLatch synchronizer) {
+
+        return new BatchCommitSyncOperation(entries, journalBatch, dataSize, listener, synchronizer);
+    }
+
     private void appendEntry0(JournalEntry<V> entry, JournalListener<V> listener) {
         try {
             synchronized (journalFiles) {
@@ -259,47 +256,19 @@ class DiskJournal<V>
                     journalFiles.push(journalFile);
                 }
 
-                DiskJournalEntryFacade<V> recordEntry = DiskJournalIOUtils.prepareJournalEntry(entry, getWriter());
+                DiskJournalEntryFacade<V> recordEntry = prepareJournalEntry(entry, getWriter());
 
                 Tuple<DiskJournalAppendResult, JournalRecord<V>> result = journalFile.appendRecord(recordEntry);
-                if (result.getValue1() == DiskJournalAppendResult.APPEND_SUCCESSFUL) {
+                if (result.getLeft() == DiskJournalAppendResult.APPEND_SUCCESSFUL) {
                     if (listener != null) {
-                        onCommit(listener, result.getValue2());
-                    }
-                } else if (result.getValue1() == DiskJournalAppendResult.JOURNAL_OVERFLOW) {
-                    LOGGER.debug("Journal full, overflowing to next one...");
-
-                    // Close current journal file ...
-                    journalFile.close();
-
-                    // ... and start new journal ...
-                    journalFiles.push(buildJournalFile());
-
-                    // ... finally retry to write to journal
-                    appendEntrySynchronous(entry, listener);
-                } else if (result.getValue1() == DiskJournalAppendResult.JOURNAL_FULL_OVERFLOW) {
-                    LOGGER.debug("Record dataset too large for normal journal, using overflow journal file");
-
-                    // Close current journal file ...
-                    journalFile.close();
-
-                    // Calculate overflow filelength
-                    int length = recordEntry.cachedData.length + DiskJournal.JOURNAL_OVERFLOW_OVERHEAD_SIZE;
-
-                    // ... and start new journal ...
-                    journalFile = buildJournalFile(length, DiskJournal.JOURNAL_FILE_TYPE_OVERFLOW);
-                    journalFiles.push(journalFile);
-
-                    // ... finally retry to write to journal
-                    result = journalFile.appendRecord(recordEntry);
-                    if (result.getValue1() != DiskJournalAppendResult.APPEND_SUCCESSFUL) {
-                        throw new SynchronousJournalException("Overflow file could not be written");
+                        onCommit(listener, result.getRight());
                     }
 
-                    // Notify listeners about flushed to journal
-                    if (listener != null) {
-                        onCommit(listener, result.getValue2());
-                    }
+                } else if (result.getLeft() == DiskJournalAppendResult.JOURNAL_OVERFLOW) {
+                    overflowJournal(entry, listener, journalFile);
+
+                } else if (result.getLeft() == DiskJournalAppendResult.JOURNAL_FULL_OVERFLOW) {
+                    overflowLargeJournal(listener, journalFile, recordEntry);
                 }
             }
         } catch (IOException e) {
@@ -307,6 +276,50 @@ class DiskJournal<V>
                 onFailure(listener, entry, new SynchronousJournalException("Failed to persist journal entry", e));
             }
         }
+    }
+
+    private void overflowLargeJournal(JournalListener<V> listener, DiskJournalFile<V> journalFile,
+                                      DiskJournalEntryFacade<V> recordEntry)
+            throws IOException {
+
+        Tuple<DiskJournalAppendResult, JournalRecord<V>> result;
+        LOGGER.debug("Record dataset too large for normal journal, using overflow journal file");
+
+        // Close current journal file ...
+        journalFile.close();
+
+        // Calculate overflow filelength
+        int length = recordEntry.cachedData.length + DiskJournal.JOURNAL_OVERFLOW_OVERHEAD_SIZE;
+
+        // ... and start new journal ...
+        journalFile = buildJournalFile(length, DiskJournal.JOURNAL_FILE_TYPE_OVERFLOW);
+        journalFiles.push(journalFile);
+
+        // ... finally retry to write to journal
+        result = journalFile.appendRecord(recordEntry);
+        if (result.getLeft() != DiskJournalAppendResult.APPEND_SUCCESSFUL) {
+            throw new SynchronousJournalException("Overflow file could not be written");
+        }
+
+        // Notify listeners about flushed to journal
+        if (listener != null) {
+            onCommit(listener, result.getRight());
+        }
+    }
+
+    private void overflowJournal(JournalEntry<V> entry, JournalListener<V> listener, DiskJournalFile<V> journalFile)
+            throws IOException {
+
+        LOGGER.debug("Journal full, overflowing to next one...");
+
+        // Close current journal file ...
+        journalFile.close();
+
+        // ... and start new journal ...
+        journalFiles.push(buildJournalFile());
+
+        // ... finally retry to write to journal
+        appendEntrySynchronous(entry, listener);
     }
 
     private DiskJournalFile<V> buildJournalFile()
@@ -320,7 +333,7 @@ class DiskJournal<V>
 
         long logNumber = nextLogNumber();
         String filename = getNamingStrategy().generate(logNumber);
-        File journalFile = new File(journalingPath.toFile(), filename);
+        File journalFile = new File(journalPath.toFile(), filename);
         return new DiskJournalFile<>(this, journalFile, logNumber, maxLogFileSize, type);
     }
 
@@ -357,7 +370,7 @@ class DiskJournal<V>
             }
         }
 
-        public void shutdown() {
+        void shutdown() {
             shutdown.compareAndSet(false, true);
             diskJournalWriter.interrupt();
         }
@@ -405,20 +418,20 @@ class DiskJournal<V>
             }
         }
 
-        protected void rollback() {
+        void rollback() {
             DiskJournalFile<V> journalFile = journalFiles.pop();
             try {
                 if (journalFile.getHeader().getType() == JOURNAL_FILE_TYPE_BATCH) {
                     journalFile.close();
                     String fileName = journalFile.getFileName();
-                    Files.delete(journalingPath.resolve(fileName));
+                    Files.delete(journalPath.resolve(fileName));
                 }
             } catch (IOException ioe) {
                 throw new JournalException("Could not rollback journal batch file", ioe);
             }
         }
 
-        protected void commit()
+        void commit()
                 throws IOException {
 
             // Calculate the file size of the batch journal file ...
@@ -433,12 +446,12 @@ class DiskJournal<V>
             Tuple<DiskJournalAppendResult, List<JournalRecord<V>>> result = journalFile
                     .appendRecords(entries, calculatedDataSize);
 
-            if (result.getValue1() != DiskJournalAppendResult.APPEND_SUCCESSFUL) {
+            if (result.getLeft() != DiskJournalAppendResult.APPEND_SUCCESSFUL) {
                 throw new SynchronousJournalException("Failed to persist journal entry");
             }
 
             // ... and if non of them failed just announce them as committed
-            for (JournalRecord<V> record : result.getValue2()) {
+            for (JournalRecord<V> record : result.getRight()) {
                 onCommit(listener, record);
             }
         }
@@ -453,6 +466,7 @@ class DiskJournal<V>
 
         BatchCommitSyncOperation(List<DiskJournalEntryFacade<V>> entries, JournalBatch<V> journalBatch, int dataSize,
                                  JournalListener<V> listener, CountDownLatch synchronizer) {
+
             super(entries, journalBatch, dataSize, listener);
             this.synchronizer = synchronizer;
         }
@@ -466,7 +480,7 @@ class DiskJournal<V>
                 try {
                     commit();
                 } catch (Exception e) {
-                    journalException = new JournalException("Could not rollback journal batch file", e);
+                    journalException = new JournalException("Cannot rollback journal batch file", e);
 
                     // Rollback the journal file
                     rollback();
@@ -479,7 +493,7 @@ class DiskJournal<V>
             }
         }
 
-        public JournalException getCause() {
+        JournalException getCause() {
             return journalException;
         }
     }

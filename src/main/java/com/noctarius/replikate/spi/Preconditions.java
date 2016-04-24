@@ -18,7 +18,8 @@
  */
 package com.noctarius.replikate.spi;
 
-public abstract class Preconditions {
+public enum Preconditions {
+    ;
 
     public static void notNull(Object value, String name) {
         if (value == null) {
@@ -30,9 +31,6 @@ public abstract class Preconditions {
         if (!type.isInstance(value)) {
             throw new IllegalArgumentException(name + " is not of type " + type.getName());
         }
-    }
-
-    private Preconditions() {
     }
 
 }

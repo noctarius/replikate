@@ -30,6 +30,6 @@ public interface JournalEntryWriter<V> {
 
     int estimateRecordSize(JournalEntry<V> entry);
 
-    boolean isRecordSizeEstimatable();
+    boolean isRecordSizeEstimateable();
 
 }

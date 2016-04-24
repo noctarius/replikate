@@ -18,6 +18,7 @@
  */
 package com.noctarius.replikate.io.disk;
 
+import com.noctarius.replikate.JournalEntry;
 import com.noctarius.replikate.JournalListener;
 import com.noctarius.replikate.JournalRecord;
 import com.noctarius.replikate.exceptions.ReplayCancellationException;
@@ -34,6 +35,10 @@ import java.nio.file.Path;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.function.Consumer;
+import java.util.stream.Stream;
+
+import static com.noctarius.replikate.io.disk.DiskJournalIOUtils.readHeader;
 
 class DiskJournalReplayer<V> {
 
@@ -43,63 +48,30 @@ class DiskJournalReplayer<V> {
 
     private final JournalListener<V> listener;
 
-    public DiskJournalReplayer(DiskJournal<V> journal, JournalListener<V> listener) {
+    DiskJournalReplayer(DiskJournal<V> journal, JournalListener<V> listener) {
         this.journal = journal;
         this.listener = listener;
     }
 
-    public void replay() {
+    void replay() {
         List<DiskJournalRecord<V>> records = new LinkedList<>();
         List<DiskJournalFile<V>> diskJournalFiles = new LinkedList<>();
 
-        File directory = journal.getJournalingPath().toFile();
-        for (File child : directory.listFiles()) {
-            if (child.isDirectory()) {
-                continue;
-            }
-
-            String filename = child.getName();
-            if (journal.getNamingStrategy().isJournal(filename)) {
-                Tuple<DiskJournalFile<V>, List<DiskJournalRecord<V>>> result = readForward(child.toPath());
-                diskJournalFiles.add(result.getValue1());
-                records.addAll(result.getValue2());
-            }
-        }
+        File directory = journal.getJournalPath().toFile();
+        Stream.of(directory.listFiles()).forEach(collectJournalFiles(records, diskJournalFiles));
 
         Collections.sort(diskJournalFiles);
         Collections.sort(records);
 
         // Iterate the list and search for holes in history
-        long lastRecordId = -1;
-        JournalRecord<V> lastRecord = null;
-        for (DiskJournalRecord<V> record : records) {
-            if (lastRecordId != -1 && record.getRecordId() != lastRecordId + 1) {
-                LOGGER.error("{}: There is a hole in history in journal {}->{}", journal.getName(), lastRecordId,
-                        record.getRecordId());
-
-                try {
-                    ReplayNotificationResult result = listener.onReplaySuspiciousRecordId(journal, lastRecord, record);
-                    if (result == ReplayNotificationResult.Except) {
-                        throw new ReplayCancellationException("Replay of journal was aborted by callback");
-                    } else if (result == ReplayNotificationResult.Terminate) {
-                        break;
-                    }
-                } catch (RuntimeException e) {
-                    throw new ReplayCancellationException(
-                            "Replay of journal was aborted due " + "to missing recordId in the journal file", e);
-                }
-            }
-            lastRecordId = record.getRecordId();
-            lastRecord = record;
-        }
+        searchSuspiciousRecords(records);
 
         // Push all found journal files to DiskJournal
-        for (DiskJournalFile<V> diskJournalFile : diskJournalFiles) {
-            journal.pushJournalFileFromReplay(diskJournalFile);
-        }
+        diskJournalFiles.forEach(journal::pushJournalFileFromReplay);
 
+        // Replay records
         for (DiskJournalRecord<V> record : records) {
-            LOGGER.info("{}: Reannouncing journal entry  {}", journal.getName(), record.getRecordId());
+            LOGGER.info("{}: Re-announcing journal entry  {}", journal.getName(), record.getRecordId());
             try {
                 ReplayNotificationResult result = listener.onReplayRecordId(journal, record);
                 if (result == ReplayNotificationResult.Except) {
@@ -115,11 +87,56 @@ class DiskJournalReplayer<V> {
         }
     }
 
+    private void searchSuspiciousRecords(List<DiskJournalRecord<V>> records) {
+        long lastRecordId = -1;
+        JournalRecord<V> lastRecord = null;
+        for (DiskJournalRecord<V> record : records) {
+            if (lastRecordId != -1 && record.getRecordId() != lastRecordId + 1) {
+                LOGGER.error("{}: There is a hole in history in journal {}->{}", journal.getName(), lastRecordId,
+                        record.getRecordId());
+
+                if (replaySuspiciousRecord(lastRecord, record)) {
+                    break;
+                }
+            }
+            lastRecordId = record.getRecordId();
+            lastRecord = record;
+        }
+    }
+
+    private Consumer<File> collectJournalFiles(List<DiskJournalRecord<V>> records, List<DiskJournalFile<V>> diskJournalFiles) {
+        return (child) -> {
+            if (!child.isDirectory()) {
+                String filename = child.getName();
+                if (journal.getNamingStrategy().isJournal(filename)) {
+                    Tuple<DiskJournalFile<V>, List<DiskJournalRecord<V>>> result = readForward(child.toPath());
+                    diskJournalFiles.add(result.getLeft());
+                    records.addAll(result.getRight());
+                }
+            }
+        };
+    }
+
+    private boolean replaySuspiciousRecord(JournalRecord<V> lastRecord, DiskJournalRecord<V> record) {
+        try {
+            ReplayNotificationResult result = listener.onReplaySuspiciousRecordId(journal, lastRecord, record);
+            if (result == ReplayNotificationResult.Except) {
+                throw new ReplayCancellationException("Replay of journal was aborted by callback");
+            } else if (result == ReplayNotificationResult.Terminate) {
+                return true;
+            }
+        } catch (RuntimeException e) {
+            throw new ReplayCancellationException(
+                    "Replay of journal was aborted due " + "to missing recordId in the journal file", e);
+        }
+        return false;
+    }
+
     private Tuple<DiskJournalFile<V>, List<DiskJournalRecord<V>>> readForward(Path file) {
         DiskJournalFile<V> diskJournalFile = null;
         List<DiskJournalRecord<V>> records = new LinkedList<>();
         try (RandomAccessFile raf = new RandomAccessFile(file.toFile(), "r")) {
-            DiskJournalFileHeader header = DiskJournalIOUtils.readHeader(raf);
+            DiskJournalFileHeader header = readHeader(raf);
             diskJournalFile = new DiskJournalFile<>(raf, file.toFile().getName(), header, journal);
             LOGGER.info("{}: Reading old journal file with logNumber {}", journal.getName(), header.getLogNumber());
 
@@ -161,7 +178,8 @@ class DiskJournalReplayer<V> {
                 raf.readFully(entryData);
 
                 JournalEntryReader<V> reader = journal.getReader();
-                records.add(new DiskJournalRecord<>(reader.readJournalEntry(recordId, type, entryData), recordId));
+                JournalEntry<V> journalEntry = reader.readJournalEntry(recordId, type, entryData);
+                records.add(new DiskJournalRecord<>(journalEntry, recordId));
 
                 pos += startingLength;
             }
@@ -171,4 +189,5 @@ class DiskJournalReplayer<V> {
         }
         return new Tuple<>(diskJournalFile, records);
     }
+
 }

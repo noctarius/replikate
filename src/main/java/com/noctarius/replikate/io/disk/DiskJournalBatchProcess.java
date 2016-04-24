@@ -28,20 +28,20 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import static com.noctarius.replikate.io.disk.DiskJournalIOUtils.prepareJournalEntry;
+
 class DiskJournalBatchProcess<V>
         implements JournalBatch<V> {
 
+    private final List<DiskJournalEntryFacade<V>> entries = new LinkedList<>();
     private final AtomicBoolean committed = new AtomicBoolean(false);
 
-    private final List<DiskJournalEntryFacade<V>> entries = new LinkedList<>();
-
     private final JournalListener<V> listener;
-
     private final DiskJournal<V> journal;
 
     private volatile int dataSize = 0;
 
-    public DiskJournalBatchProcess(DiskJournal<V> journal, JournalListener<V> listener) {
+    DiskJournalBatchProcess(DiskJournal<V> journal, JournalListener<V> listener) {
         this.journal = journal;
         this.listener = listener;
     }
@@ -51,7 +51,7 @@ class DiskJournalBatchProcess<V>
             throws JournalException {
 
         try {
-            DiskJournalEntryFacade<V> batchEntry = DiskJournalIOUtils.prepareJournalEntry(entry, journal.getWriter());
+            DiskJournalEntryFacade<V> batchEntry = prepareJournalEntry(entry, journal.getWriter());
             entries.add(batchEntry);
             dataSize += batchEntry.cachedData.length;
         } catch (IOException e) {

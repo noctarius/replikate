@@ -25,7 +25,7 @@ class DiskJournalEntryFacade<V>
 
     final JournalEntry<V> wrappedEntry;
 
-    public DiskJournalEntryFacade(JournalEntry<V> wrappedEntry) {
+    DiskJournalEntryFacade(JournalEntry<V> wrappedEntry) {
         super(wrappedEntry.getValue(), wrappedEntry.getType());
         this.wrappedEntry = wrappedEntry;
     }
