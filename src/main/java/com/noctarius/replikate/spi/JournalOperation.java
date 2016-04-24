@@ -18,8 +18,7 @@
  */
 package com.noctarius.replikate.spi;
 
-public interface JournalOperation
-{
+public interface JournalOperation {
 
     void execute();
 

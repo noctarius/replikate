@@ -18,14 +18,13 @@
  */
 package com.noctarius.replikate.spi;
 
-import java.io.IOException;
-
 import com.noctarius.replikate.JournalEntry;
 
-public interface JournalEntryReader<V>
-{
+import java.io.IOException;
 
-    JournalEntry<V> readJournalEntry( long recordId, byte type, byte[] data )
-        throws IOException;
+public interface JournalEntryReader<V> {
+
+    JournalEntry<V> readJournalEntry(long recordId, byte type, byte[] data)
+            throws IOException;
 
 }

@@ -22,46 +22,39 @@ import com.noctarius.replikate.JournalEntry;
 import com.noctarius.replikate.JournalRecord;
 
 class AMQPJournalRecord<V>
-    implements JournalRecord<V>
-{
+        implements JournalRecord<V> {
 
     private final JournalEntry<V> entry;
 
     private final long recordId;
 
-    AMQPJournalRecord( JournalEntry<V> entry, long recordId )
-    {
+    AMQPJournalRecord(JournalEntry<V> entry, long recordId) {
         this.entry = entry;
         this.recordId = recordId;
     }
 
     @Override
-    public int compareTo( JournalRecord<V> o )
-    {
-        return Long.valueOf( recordId ).compareTo( o.getRecordId() );
+    public int compareTo(JournalRecord<V> o) {
+        return Long.valueOf(recordId).compareTo(o.getRecordId());
     }
 
     @Override
-    public byte getType()
-    {
+    public byte getType() {
         return entry.getType();
     }
 
     @Override
-    public long getRecordId()
-    {
+    public long getRecordId() {
         return recordId;
     }
 
     @Override
-    public JournalEntry<V> getJournalEntry()
-    {
+    public JournalEntry<V> getJournalEntry() {
         return entry;
     }
 
     @Override
-    public String toString()
-    {
+    public String toString() {
         return "AMQPJournalRecord [recordId=" + recordId + ", entry=" + entry + "]";
     }
 

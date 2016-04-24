@@ -18,8 +18,7 @@
  */
 package com.noctarius.replikate;
 
-public interface JournalEntry<V>
-{
+public interface JournalEntry<V> {
 
     V getValue();
 

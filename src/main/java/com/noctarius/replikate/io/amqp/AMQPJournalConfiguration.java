@@ -21,18 +21,15 @@ package com.noctarius.replikate.io.amqp;
 import com.noctarius.replikate.JournalConfiguration;
 
 public class AMQPJournalConfiguration<V>
-    extends JournalConfiguration<V>
-{
+        extends JournalConfiguration<V> {
 
     private String amqpUrl;
 
-    public String getAmqpUrl()
-    {
+    public String getAmqpUrl() {
         return amqpUrl;
     }
 
-    public void setAmqpUrl( String amqpUrl )
-    {
+    public void setAmqpUrl(String amqpUrl) {
         this.amqpUrl = amqpUrl;
     }
 

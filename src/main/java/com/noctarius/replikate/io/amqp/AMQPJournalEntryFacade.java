@@ -22,17 +22,17 @@ import com.noctarius.replikate.JournalEntry;
 import com.noctarius.replikate.SimpleJournalEntry;
 
 class AMQPJournalEntryFacade<V>
-    extends SimpleJournalEntry<V>
-{
+        extends SimpleJournalEntry<V> {
 
     final JournalEntry<V> wrappedEntry;
 
-    /** Remember to exchange array reference to get volatility of array reference (JMM) */
+    /**
+     * Remember to exchange array reference to get volatility of array reference (JMM)
+     */
     volatile byte[] cachedData = null;
 
-    public AMQPJournalEntryFacade( JournalEntry<V> wrappedEntry )
-    {
-        super( wrappedEntry.getValue(), wrappedEntry.getType() );
+    public AMQPJournalEntryFacade(JournalEntry<V> wrappedEntry) {
+        super(wrappedEntry.getValue(), wrappedEntry.getType());
         this.wrappedEntry = wrappedEntry;
     }
 

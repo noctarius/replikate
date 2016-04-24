@@ -21,14 +21,13 @@ package com.noctarius.replikate;
 import com.noctarius.replikate.exceptions.JournalException;
 import com.noctarius.replikate.spi.ReplayNotificationResult;
 
-public interface JournalListener<V>
-{
+public interface JournalListener<V> {
 
-    void onCommit( JournalRecord<V> record );
+    void onCommit(JournalRecord<V> record);
 
-    void onFailure( JournalEntry<V> entry, JournalException cause );
+    void onFailure(JournalEntry<V> entry, JournalException cause);
 
-    void onFailure( JournalBatch<V> journalBatch, JournalException cause );
+    void onFailure(JournalBatch<V> journalBatch, JournalException cause);
 
     /**
      * This callback method is called when during journal replaying a missing recordId or other suspicious events arise.<br>
@@ -42,14 +41,14 @@ public interface JournalListener<V>
      * read entries will be announced (same can be achieved by throwing an {@link RuntimeException} inside the callback)
      * </li>
      * </ul>
-     * 
-     * @param journal The journal that is read
-     * @param lastRecord The previously read journal record
+     *
+     * @param journal       The journal that is read
+     * @param lastRecord    The previously read journal record
      * @param currentRecord The currently read journal record
      * @return Further execution behavior
      */
-    ReplayNotificationResult onReplaySuspiciousRecordId( Journal<V> journal, JournalRecord<V> lastRecord,
-                                                         JournalRecord<V> currentRecord );
+    ReplayNotificationResult onReplaySuspiciousRecordId(Journal<V> journal, JournalRecord<V> lastRecord,
+                                                        JournalRecord<V> currentRecord);
 
     /**
      * This method is called when during startup of the Journal implementation a previous journal was found and records
@@ -61,11 +60,11 @@ public interface JournalListener<V>
      * <li>{@link ReplayNotificationResult#Terminate} will silently finish the record reading</li><br>
      * <li>{@link ReplayNotificationResult#Except} will throw a {@link JournalException} (same can be achieved by
      * throwing an {@link RuntimeException} inside the callback)</li>
-     * 
+     *
      * @param journal The journal that is read
-     * @param record The currently read journal record
+     * @param record  The currently read journal record
      * @return Further execution behavior
      */
-    ReplayNotificationResult onReplayRecordId( Journal<V> journal, JournalRecord<V> record );
+    ReplayNotificationResult onReplayRecordId(Journal<V> journal, JournalRecord<V> record);
 
 }

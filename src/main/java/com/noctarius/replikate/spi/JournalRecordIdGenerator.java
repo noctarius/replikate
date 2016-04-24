@@ -18,13 +18,12 @@
  */
 package com.noctarius.replikate.spi;
 
-public interface JournalRecordIdGenerator
-{
+public interface JournalRecordIdGenerator {
 
     long nextRecordId();
 
     long lastGeneratedRecordId();
 
-    void notifyHighestJournalRecordId( long recordId );
+    void notifyHighestJournalRecordId(long recordId);
 
 }

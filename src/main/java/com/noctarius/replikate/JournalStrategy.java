@@ -18,8 +18,7 @@
  */
 package com.noctarius.replikate;
 
-public enum JournalStrategy
-{
+public enum JournalStrategy {
 
     DiskJournal, AMQPJournal
 

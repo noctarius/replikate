@@ -19,29 +19,22 @@
 package com.noctarius.replikate.exceptions;
 
 public class JournalException
-    extends RuntimeException
-{
+        extends RuntimeException {
 
-    private static final long serialVersionUID = 2480300208807598045L;
-
-    public JournalException()
-    {
+    public JournalException() {
         super();
     }
 
-    public JournalException( String message, Throwable cause )
-    {
-        super( message, cause );
+    public JournalException(String message, Throwable cause) {
+        super(message, cause);
     }
 
-    public JournalException( String message )
-    {
-        super( message );
+    public JournalException(String message) {
+        super(message);
     }
 
-    public JournalException( Throwable cause )
-    {
-        super( cause );
+    public JournalException(Throwable cause) {
+        super(cause);
     }
 
 }

@@ -18,13 +18,12 @@
  */
 package com.noctarius.replikate;
 
-public interface JournalNamingStrategy
-{
+public interface JournalNamingStrategy {
 
-    String generate( long logNumber );
+    String generate(long logNumber);
 
-    boolean isJournal( String name );
+    boolean isJournal(String name);
 
-    long extractLogNumber( String name );
+    long extractLogNumber(String name);
 
 }

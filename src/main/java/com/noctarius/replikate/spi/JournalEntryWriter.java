@@ -18,18 +18,17 @@
  */
 package com.noctarius.replikate.spi;
 
+import com.noctarius.replikate.JournalEntry;
+
 import java.io.DataOutput;
 import java.io.IOException;
 
-import com.noctarius.replikate.JournalEntry;
+public interface JournalEntryWriter<V> {
 
-public interface JournalEntryWriter<V>
-{
+    void writeJournalEntry(JournalEntry<V> entry, DataOutput out)
+            throws IOException;
 
-    void writeJournalEntry( JournalEntry<V> entry, DataOutput out )
-        throws IOException;
-
-    int estimateRecordSize( JournalEntry<V> entry );
+    int estimateRecordSize(JournalEntry<V> entry);
 
     boolean isRecordSizeEstimatable();
 

@@ -19,8 +19,7 @@
 package com.noctarius.replikate;
 
 public interface JournalRecord<V>
-    extends Comparable<JournalRecord<V>>
-{
+        extends Comparable<JournalRecord<V>> {
 
     byte getType();
 

@@ -18,10 +18,9 @@
  */
 package com.noctarius.replikate.io.disk;
 
-class DiskJournalFileHeader
-{
+class DiskJournalFileHeader {
 
-    static final byte[] MAGIC_NUMBER = { (byte) 0xFE, (byte) 0xEE, (byte) 0xEE, (byte) 0xEF };
+    static final byte[] MAGIC_NUMBER = {(byte) 0xFE, (byte) 0xEE, (byte) 0xEE, (byte) 0xEF};
 
     private final int version;
 
@@ -33,13 +32,11 @@ class DiskJournalFileHeader
 
     private final int firstDataOffset;
 
-    DiskJournalFileHeader( int version, int maxLogFileSize, long logFileNumber, byte type )
-    {
-        this( version, maxLogFileSize, logFileNumber, type, DiskJournal.JOURNAL_FILE_HEADER_SIZE );
+    DiskJournalFileHeader(int version, int maxLogFileSize, long logFileNumber, byte type) {
+        this(version, maxLogFileSize, logFileNumber, type, DiskJournal.JOURNAL_FILE_HEADER_SIZE);
     }
 
-    DiskJournalFileHeader( int version, int maxLogFileSize, long logFileNumber, byte type, int firstDataOffset )
-    {
+    DiskJournalFileHeader(int version, int maxLogFileSize, long logFileNumber, byte type, int firstDataOffset) {
         this.version = version;
         this.maxLogFileSize = maxLogFileSize;
         this.logFileNumber = logFileNumber;
@@ -47,28 +44,23 @@ class DiskJournalFileHeader
         this.firstDataOffset = firstDataOffset;
     }
 
-    public int getVersion()
-    {
+    public int getVersion() {
         return version;
     }
 
-    public int getMaxLogFileSize()
-    {
+    public int getMaxLogFileSize() {
         return maxLogFileSize;
     }
 
-    public long getLogNumber()
-    {
+    public long getLogNumber() {
         return logFileNumber;
     }
 
-    public byte getType()
-    {
+    public byte getType() {
         return type;
     }
 
-    public int getFirstDataOffset()
-    {
+    public int getFirstDataOffset() {
         return firstDataOffset;
     }
 

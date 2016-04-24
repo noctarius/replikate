@@ -18,18 +18,6 @@
  */
 package com.noctarius.replikate.io.amqp;
 
-import java.io.IOException;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.atomic.AtomicBoolean;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.noctarius.replikate.JournalBatch;
 import com.noctarius.replikate.JournalEntry;
 import com.noctarius.replikate.JournalListener;
@@ -46,25 +34,35 @@ import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 class AMQPJournal<V>
-    extends AbstractJournal<V>
-{
+        extends AbstractJournal<V> {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger( AMQPJournal.class );
+    private static final Logger LOGGER = LoggerFactory.getLogger(AMQPJournal.class);
 
     private final ConnectionFactory connectionFactory = new ConnectionFactory();
 
-    private final AMQP.BasicProperties sendBasicProperties =
-        new AMQP.BasicProperties.Builder().contentType( "application/octet-stream" ).deliveryMode( 2 ).priority( 1 ).build();
+    private final AMQP.BasicProperties sendBasicProperties = new AMQP.BasicProperties.Builder()
+            .contentType("application/octet-stream").deliveryMode(2).priority(1).build();
 
     private final BlockingQueue<JournalOperation> journalQueue = new LinkedBlockingQueue<>();
 
     private final JournalSenderTask journalSenderTask = new JournalSenderTask();
 
-    private final CountDownLatch shutdownLatch = new CountDownLatch( 1 );
+    private final CountDownLatch shutdownLatch = new CountDownLatch(1);
 
-    private final AtomicBoolean shutdown = new AtomicBoolean( false );
+    private final AtomicBoolean shutdown = new AtomicBoolean(false);
 
     private final Thread journalSender;
 
@@ -72,78 +70,73 @@ class AMQPJournal<V>
 
     private final Channel channel;
 
-    AMQPJournal( String name, String amqpUrl, JournalRecordIdGenerator recordIdGenerator, JournalEntryReader<V> reader,
-                 JournalEntryWriter<V> writer, JournalNamingStrategy namingStrategy,
-                 ExecutorService listenerExecutorService )
-        throws Exception
-    {
-        super( name, recordIdGenerator, reader, writer, namingStrategy, listenerExecutorService );
+    AMQPJournal(String name, String amqpUrl, JournalRecordIdGenerator recordIdGenerator, JournalEntryReader<V> reader,
+                JournalEntryWriter<V> writer, JournalNamingStrategy namingStrategy, ExecutorService listenerExecutorService)
+            throws Exception {
 
-        connectionFactory.setUri( amqpUrl );
-        connection = connectionFactory.newConnection( listenerExecutorService );
+        super(name, recordIdGenerator, reader, writer, namingStrategy, listenerExecutorService);
+
+        connectionFactory.setUri(amqpUrl);
+        connection = connectionFactory.newConnection(listenerExecutorService);
         channel = connection.createChannel();
 
-        journalSender = new Thread( journalSenderTask, "AMQP-Journal-Sender-" + name );
+        journalSender = new Thread(journalSenderTask, "AMQP-Journal-Sender-" + name);
         journalSender.start();
     }
 
     @Override
-    public void appendEntry( JournalEntry<V> entry )
-        throws JournalException
-    {
+    public void appendEntry(JournalEntry<V> entry)
+            throws JournalException {
+
         // TODO Auto-generated method stub
 
     }
 
     @Override
-    public void appendEntry( JournalEntry<V> entry, JournalListener<V> listener )
-        throws JournalException
-    {
+    public void appendEntry(JournalEntry<V> entry, JournalListener<V> listener)
+            throws JournalException {
+
         // TODO Auto-generated method stub
 
     }
 
     @Override
-    public void appendEntrySynchronous( JournalEntry<V> entry )
-        throws JournalException
-    {
+    public void appendEntrySynchronous(JournalEntry<V> entry)
+            throws JournalException {
+
         // TODO Auto-generated method stub
 
     }
 
     @Override
-    public void appendEntrySynchronous( JournalEntry<V> entry, JournalListener<V> listener )
-        throws JournalException
-    {
+    public void appendEntrySynchronous(JournalEntry<V> entry, JournalListener<V> listener)
+            throws JournalException {
+
         // TODO Auto-generated method stub
 
     }
 
     @Override
-    public JournalBatch<V> startBatchProcess()
-    {
+    public JournalBatch<V> startBatchProcess() {
         // TODO Auto-generated method stub
         return null;
     }
 
     @Override
-    public JournalBatch<V> startBatchProcess( JournalListener<V> listener )
-    {
+    public JournalBatch<V> startBatchProcess(JournalListener<V> listener) {
         // TODO Auto-generated method stub
         return null;
     }
 
     @Override
     public void close()
-        throws IOException
-    {
-        if ( !shutdown.compareAndSet( false, true ) )
-        {
+            throws IOException {
+
+        if (!shutdown.compareAndSet(false, true)) {
             return;
         }
 
-        try
-        {
+        try {
             journalSenderTask.shutdown();
 
             // Wait for asynchronous journal writer to finish
@@ -151,68 +144,52 @@ class AMQPJournal<V>
 
             channel.close();
             connection.close();
-        }
-        catch ( InterruptedException e )
-        {
+        } catch (InterruptedException e) {
 
         }
     }
 
     private class JournalSenderTask
-        implements Runnable
-    {
+            implements Runnable {
 
-        private final AtomicBoolean shutdown = new AtomicBoolean( false );
+        private final AtomicBoolean shutdown = new AtomicBoolean(false);
 
         @Override
-        public void run()
-        {
-            try
-            {
-                while ( true )
-                {
-                    try
-                    {
+        public void run() {
+            try {
+                while (true) {
+                    try {
                         // If all work is done, break up
-                        if ( shutdown.get() && journalQueue.size() == 0 )
-                        {
+                        if (shutdown.get() && journalQueue.size() == 0) {
                             break;
                         }
 
                         JournalOperation operation = journalQueue.take();
-                        if ( operation != null )
-                        {
+                        if (operation != null) {
                             operation.execute();
                         }
 
-                        Thread.sleep( 1 );
-                    }
-                    catch ( InterruptedException e )
-                    {
-                        if ( !shutdown.get() )
-                        {
-                            LOGGER.warn( "JournalSenderTask ignores to interrupt, to shutdown "
-                                + "it call JournalSenderTask::shutdown()", e );
+                        Thread.sleep(1);
+                    } catch (InterruptedException e) {
+                        if (!shutdown.get()) {
+                            LOGGER.warn("JournalSenderTask ignores to interrupt, to shutdown "
+                                    + "it call JournalSenderTask::shutdown()", e);
                         }
                     }
                 }
-            }
-            finally
-            {
+            } finally {
                 shutdownLatch.countDown();
             }
         }
 
-        public void shutdown()
-        {
-            shutdown.compareAndSet( false, true );
+        public void shutdown() {
+            shutdown.compareAndSet(false, true);
             journalSender.interrupt();
         }
     }
 
     private class BatchCommitOperation
-        implements JournalOperation
-    {
+            implements JournalOperation {
 
         private final List<AMQPJournalEntryFacade<V>> entries;
 
@@ -220,127 +197,105 @@ class AMQPJournal<V>
 
         private final JournalListener<V> listener;
 
-        private BatchCommitOperation( List<AMQPJournalEntryFacade<V>> entries, JournalBatch<V> journalBatch,
-                                      JournalListener<V> listener )
-        {
+        private BatchCommitOperation(List<AMQPJournalEntryFacade<V>> entries, JournalBatch<V> journalBatch,
+                                     JournalListener<V> listener) {
             this.entries = entries;
             this.journalBatch = journalBatch;
             this.listener = listener;
         }
 
-        public void execute()
-        {
+        public void execute() {
             // Storing current recordId for case of rollback
             long markedRecordId = getRecordIdGenerator().lastGeneratedRecordId();
 
-            try
-            {
+            try {
                 commit();
-            }
-            catch ( Exception e )
-            {
-                if ( listener != null )
-                {
-                    onFailure( listener, journalBatch,
-                               new SynchronousJournalException( "Failed to persist journal batch process", e ) );
+            } catch (Exception e) {
+                if (listener != null) {
+                    onFailure(listener, journalBatch,
+                            new SynchronousJournalException("Failed to persist journal batch process", e));
                 }
 
                 // Rollback the journal file
-                try
-                {
+                try {
                     rollback();
-                }
-                catch ( IOException ioe )
-                {
-                    LOGGER.error( "Transaction could not be rollbacked", ioe );
+                } catch (IOException ioe) {
+                    LOGGER.error("Transaction could not be rollbacked", ioe);
                 }
 
                 // Rollback the recordId
-                getRecordIdGenerator().notifyHighestJournalRecordId( markedRecordId );
+                getRecordIdGenerator().notifyHighestJournalRecordId(markedRecordId);
             }
         }
 
         protected void rollback()
-            throws IOException
-        {
+                throws IOException {
+
             channel.txRollback();
         }
 
         protected void commit()
-            throws IOException
-        {
+                throws IOException {
+
             channel.txSelect();
 
             // Send all entries in one transaction over to the AMQP server
             List<AMQPJournalRecord<V>> records = new LinkedList<>();
-            for ( AMQPJournalEntryFacade<V> entry : entries )
-            {
+            for (AMQPJournalEntryFacade<V> entry : entries) {
                 long recordId = getRecordIdGenerator().nextRecordId();
-                AMQPJournalRecord<V> record = new AMQPJournalRecord<>( entry.wrappedEntry, recordId );
-                channel.basicPublish( "", "", sendBasicProperties, entry.cachedData );
-                records.add( record );
+                AMQPJournalRecord<V> record = new AMQPJournalRecord<>(entry.wrappedEntry, recordId);
+                channel.basicPublish("", "", sendBasicProperties, entry.cachedData);
+                records.add(record);
             }
 
             channel.txCommit();
 
             // ... and if non of them failed just announce them as committed
-            for ( JournalRecord<V> record : records )
-            {
-                onCommit( listener, record );
+            for (JournalRecord<V> record : records) {
+                onCommit(listener, record);
             }
         }
     }
 
     private class BatchCommitSyncOperation
-        extends BatchCommitOperation
-    {
+            extends BatchCommitOperation {
 
         private final CountDownLatch synchronizer;
 
         private volatile JournalException journalException = null;
 
-        BatchCommitSyncOperation( List<AMQPJournalEntryFacade<V>> entries, JournalBatch<V> journalBatch,
-                                  JournalListener<V> listener, CountDownLatch synchronizer )
-        {
-            super( entries, journalBatch, listener );
+        BatchCommitSyncOperation(List<AMQPJournalEntryFacade<V>> entries, JournalBatch<V> journalBatch,
+                                 JournalListener<V> listener, CountDownLatch synchronizer) {
+
+            super(entries, journalBatch, listener);
             this.synchronizer = synchronizer;
         }
 
         @Override
-        public void execute()
-        {
+        public void execute() {
             // Storing current recordId for case of rollback
             long markedRecordId = getRecordIdGenerator().lastGeneratedRecordId();
 
-            try
-            {
+            try {
                 commit();
-            }
-            catch ( Exception e )
-            {
-                journalException = new JournalException( "Could not rollback journal batch file", e );
+            } catch (Exception e) {
+                journalException = new JournalException("Could not rollback journal batch file", e);
 
                 // Rollback the journal file
-                try
-                {
+                try {
                     rollback();
-                }
-                catch ( IOException ioe )
-                {
-                    LOGGER.error( "Transaction could not be rollbacked", ioe );
+                } catch (IOException ioe) {
+                    LOGGER.error("Transaction could not be rollbacked", ioe);
                 }
 
                 // Rollback the recordId
-                getRecordIdGenerator().notifyHighestJournalRecordId( markedRecordId );
-            }
-            finally
-            {
+                getRecordIdGenerator().notifyHighestJournalRecordId(markedRecordId);
+            } finally {
                 synchronizer.countDown();
             }
         }
 
-        public JournalException getCause()
-        {
+        public JournalException getCause() {
             return journalException;
         }
     }

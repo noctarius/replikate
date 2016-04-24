@@ -21,15 +21,15 @@ package com.noctarius.replikate.io.disk;
 import com.noctarius.replikate.SimpleJournalEntry;
 
 class DiskJournalEntry<V>
-    extends SimpleJournalEntry<V>
-{
+        extends SimpleJournalEntry<V> {
 
-    /** Remember to exchange array reference to get volatility of array reference (JMM) */
+    /**
+     * Remember to exchange array reference to get volatility of array reference (JMM)
+     */
     volatile byte[] cachedData = null;
 
-    public DiskJournalEntry( V value, byte type )
-    {
-        super( value, type );
+    public DiskJournalEntry(V value, byte type) {
+        super(value, type);
     }
 
 }

@@ -18,34 +18,27 @@
  */
 package com.noctarius.replikate.io.amqp;
 
-import java.util.concurrent.ExecutorService;
-
 import com.noctarius.replikate.Journal;
 import com.noctarius.replikate.JournalConfiguration;
 import com.noctarius.replikate.exceptions.JournalConfigurationException;
 import com.noctarius.replikate.spi.JournalFactory;
 import com.noctarius.replikate.spi.Preconditions;
 
+import java.util.concurrent.ExecutorService;
+
 public class AMQPJournalFactory<V>
-    implements JournalFactory<V>
-{
+        implements JournalFactory<V> {
 
     @Override
-    public Journal<V> buildJournal( String name, JournalConfiguration<V> configuration,
-                                    ExecutorService listenerExecutorService )
-    {
-        Preconditions.checkType( configuration, AMQPJournalConfiguration.class, "configuration" );
+    public Journal<V> buildJournal(String name, JournalConfiguration<V> configuration, ExecutorService listenerExecutorService) {
+        Preconditions.checkType(configuration, AMQPJournalConfiguration.class, "configuration");
         AMQPJournalConfiguration<V> config = (AMQPJournalConfiguration<V>) configuration;
 
-        try
-        {
-            return new AMQPJournal<>( name, config.getAmqpUrl(), config.getRecordIdGenerator(),
-                                      config.getEntryReader(), config.getEntryWriter(), config.getNamingStrategy(),
-                                      listenerExecutorService );
-        }
-        catch ( Exception e )
-        {
-            throw new JournalConfigurationException( "Error while configuring the journal", e );
+        try {
+            return new AMQPJournal<>(name, config.getAmqpUrl(), config.getRecordIdGenerator(), config.getEntryReader(),
+                    config.getEntryWriter(), config.getNamingStrategy(), listenerExecutorService);
+        } catch (Exception e) {
+            throw new JournalConfigurationException("Error while configuring the journal", e);
         }
     }
 

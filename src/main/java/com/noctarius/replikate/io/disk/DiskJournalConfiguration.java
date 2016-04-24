@@ -18,35 +18,30 @@
  */
 package com.noctarius.replikate.io.disk;
 
-import java.nio.file.Path;
-
 import com.noctarius.replikate.JournalConfiguration;
 
+import java.nio.file.Path;
+
 public class DiskJournalConfiguration<V>
-    extends JournalConfiguration<V>
-{
+        extends JournalConfiguration<V> {
 
     private Path journalingPath;
 
     private int maxLogFileSize;
 
-    public Path getJournalingPath()
-    {
+    public Path getJournalingPath() {
         return journalingPath;
     }
 
-    public void setJournalingPath( Path journalingPath )
-    {
+    public void setJournalingPath(Path journalingPath) {
         this.journalingPath = journalingPath;
     }
 
-    public int getMaxLogFileSize()
-    {
+    public int getMaxLogFileSize() {
         return maxLogFileSize;
     }
 
-    public void setMaxLogFileSize( int maxLogFileSize )
-    {
+    public void setMaxLogFileSize(int maxLogFileSize) {
         this.maxLogFileSize = maxLogFileSize;
     }
 
