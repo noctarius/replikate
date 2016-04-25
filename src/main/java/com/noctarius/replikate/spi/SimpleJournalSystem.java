@@ -140,20 +140,6 @@ public class SimpleJournalSystem
         }
 
         @Override
-        public void appendEntrySynchronous(JournalEntry<V> entry)
-                throws JournalException {
-
-            journal.appendEntrySynchronous(entry);
-        }
-
-        @Override
-        public void appendEntrySynchronous(JournalEntry<V> entry, JournalListener<V> listener)
-                throws JournalException {
-
-            journal.appendEntrySynchronous(entry, listener);
-        }
-
-        @Override
         public JournalBatch<V> startBatchProcess() {
             return journal.startBatchProcess();
         }

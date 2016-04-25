@@ -135,7 +135,7 @@ public abstract class AbstractJournal<V>
         }
 
         public void execute() {
-            appendEntrySynchronous(entry, listener);
+            appendEntry(entry, listener);
         }
     }
 

@@ -37,12 +37,6 @@ public interface Journal<V> {
     void appendEntry(JournalEntry<V> entry, JournalListener<V> listener)
             throws JournalException;
 
-    void appendEntrySynchronous(JournalEntry<V> entry)
-            throws JournalException;
-
-    void appendEntrySynchronous(JournalEntry<V> entry, JournalListener<V> listener)
-            throws JournalException;
-
     JournalBatch<V> startBatchProcess();
 
     JournalBatch<V> startBatchProcess(JournalListener<V> listener);

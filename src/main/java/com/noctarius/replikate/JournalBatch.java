@@ -25,9 +25,7 @@ public interface JournalBatch<V> {
     void appendEntry(JournalEntry<V> entry)
             throws JournalException;
 
-    void commit();
-
-    void commitSynchronous()
+    void commit()
             throws JournalException;
 
 }

@@ -54,6 +54,7 @@ class DiskJournalBatchProcess<V>
             DiskJournalEntryFacade<V> batchEntry = prepareJournalEntry(entry, journal.getWriter());
             entries.add(batchEntry);
             dataSize += batchEntry.cachedData.length;
+
         } catch (IOException e) {
             throw new JournalException("JournalEntry could not be added to the batch job", e);
         }
@@ -68,17 +69,6 @@ class DiskJournalBatchProcess<V>
         }
 
         journal.commitBatchProcess(this, entries, dataSize, listener);
-    }
-
-    @Override
-    public void commitSynchronous()
-            throws JournalException {
-
-        if (!committed.compareAndSet(false, true)) {
-            throw new JournalException("Batch already committed");
-        }
-
-        journal.commitBatchProcessSync(this, entries, dataSize, listener);
     }
 
     @Override

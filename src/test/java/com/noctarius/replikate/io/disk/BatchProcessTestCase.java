@@ -60,7 +60,7 @@ public class BatchProcessTestCase
         batch.appendEntry(record1);
         batch.appendEntry(record2);
         batch.appendEntry(record3);
-        batch.commitSynchronous();
+        batch.commit();
 
         journal.close();
     }
@@ -140,7 +140,7 @@ public class BatchProcessTestCase
 
         journal.close();
 
-        batch.commitSynchronous();
+        batch.commit();
     }
 
     private SimpleJournalEntry<byte[]> buildTestRecord(byte type) {

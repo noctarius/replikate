@@ -101,22 +101,6 @@ class AMQPJournal<V>
     }
 
     @Override
-    public void appendEntrySynchronous(JournalEntry<V> entry)
-            throws JournalException {
-
-        // TODO Auto-generated method stub
-
-    }
-
-    @Override
-    public void appendEntrySynchronous(JournalEntry<V> entry, JournalListener<V> listener)
-            throws JournalException {
-
-        // TODO Auto-generated method stub
-
-    }
-
-    @Override
     public JournalBatch<V> startBatchProcess() {
         // TODO Auto-generated method stub
         return null;
