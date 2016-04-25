@@ -16,33 +16,20 @@
  *  specific language governing permissions and limitations
  *  under the License.
  */
-package com.noctarius.replikate.io.disk;
+package com.noctarius.replikate.impl.disk;
 
-import com.noctarius.replikate.JournalConfiguration;
+import com.noctarius.replikate.SimpleJournalEntry;
 
-import java.nio.file.Path;
+class DiskJournalEntry<V>
+        extends SimpleJournalEntry<V> {
 
-public class DiskJournalConfiguration<V>
-        extends JournalConfiguration<V> {
+    /**
+     * Remember to exchange array reference to get volatility of array reference (JMM)
+     */
+    volatile byte[] cachedData = null;
 
-    private Path journalPath;
-
-    private int maxLogFileSize;
-
-    public Path getJournalPath() {
-        return journalPath;
-    }
-
-    public void setJournalPath(Path journalPath) {
-        this.journalPath = journalPath;
-    }
-
-    public int getMaxLogFileSize() {
-        return maxLogFileSize;
-    }
-
-    public void setMaxLogFileSize(int maxLogFileSize) {
-        this.maxLogFileSize = maxLogFileSize;
+    DiskJournalEntry(V value, byte type) {
+        super(value, type);
     }
 
 }

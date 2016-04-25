@@ -16,13 +16,13 @@
  *  specific language governing permissions and limitations
  *  under the License.
  */
-package com.noctarius.replikate.io.disk;
+package com.noctarius.replikate.impl.disk;
 
 import com.noctarius.replikate.Journal;
 import com.noctarius.replikate.JournalRecord;
 import com.noctarius.replikate.exceptions.JournalException;
-import com.noctarius.replikate.io.util.ByteArrayBufferOutputStream;
-import com.noctarius.replikate.io.util.Tuple;
+import com.noctarius.replikate.impl.util.ByteArrayBufferOutputStream;
+import com.noctarius.replikate.impl.util.Tuple;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,9 +34,9 @@ import java.util.List;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-import static com.noctarius.replikate.io.disk.DiskJournalIOUtils.createJournal;
-import static com.noctarius.replikate.io.disk.DiskJournalIOUtils.prepareBulkRecord;
-import static com.noctarius.replikate.io.disk.DiskJournalIOUtils.writeRecord;
+import static com.noctarius.replikate.impl.disk.DiskJournalIOUtils.createJournal;
+import static com.noctarius.replikate.impl.disk.DiskJournalIOUtils.prepareBulkRecord;
+import static com.noctarius.replikate.impl.disk.DiskJournalIOUtils.writeRecord;
 
 class DiskJournalFile<V>
         implements Comparable<DiskJournalFile<V>> {

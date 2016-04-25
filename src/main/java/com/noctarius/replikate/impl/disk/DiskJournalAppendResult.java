@@ -16,31 +16,23 @@
  *  specific language governing permissions and limitations
  *  under the License.
  */
-package com.noctarius.replikate.io.util;
+package com.noctarius.replikate.impl.disk;
 
-import java.io.IOException;
-import java.io.OutputStream;
+enum DiskJournalAppendResult {
 
-public class ByteArrayBufferOutputStream
-        extends OutputStream {
+    /**
+     * Journal entry was successfully appended
+     */
+    APPEND_SUCCESSFUL,
 
-    private final byte[] wrapped;
+    /**
+     * Journal entry is too large for a standard journal, building an overflow-journal
+     */
+    JOURNAL_FULL_OVERFLOW,
 
-    private int pos = 0;
-
-    public ByteArrayBufferOutputStream(byte[] wrapped) {
-        this.wrapped = wrapped;
-    }
-
-    @Override
-    public void write(int b)
-            throws IOException {
-
-        if (pos == wrapped.length) {
-            throw new ArrayIndexOutOfBoundsException("Position " + pos + " is outside of wrapped array");
-        }
-
-        wrapped[pos++] = (byte) b;
-    }
+    /**
+     * Journal entry is too large, building a new journal file
+     */
+    JOURNAL_OVERFLOW
 
 }

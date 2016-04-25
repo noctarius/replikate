@@ -16,7 +16,7 @@
  *  specific language governing permissions and limitations
  *  under the License.
  */
-package com.noctarius.replikate.io.disk;
+package com.noctarius.replikate.impl.disk;
 
 import com.noctarius.replikate.Journal;
 import com.noctarius.replikate.JournalBatch;
@@ -26,11 +26,11 @@ import com.noctarius.replikate.JournalRecord;
 import com.noctarius.replikate.JournalSystem;
 import com.noctarius.replikate.SimpleJournalEntry;
 import com.noctarius.replikate.exceptions.JournalException;
-import com.noctarius.replikate.io.disk.BasicDiskJournalTestCase.NamingStrategy;
-import com.noctarius.replikate.io.disk.OverflowTestCase.FlushListener;
-import com.noctarius.replikate.io.disk.OverflowTestCase.RecordIdGenerator;
-import com.noctarius.replikate.io.disk.OverflowTestCase.RecordReader;
-import com.noctarius.replikate.io.disk.OverflowTestCase.RecordWriter;
+import com.noctarius.replikate.impl.disk.BasicDiskJournalTestCase.NamingStrategy;
+import com.noctarius.replikate.impl.disk.OverflowTestCase.FlushListener;
+import com.noctarius.replikate.impl.disk.OverflowTestCase.RecordIdGenerator;
+import com.noctarius.replikate.impl.disk.OverflowTestCase.RecordReader;
+import com.noctarius.replikate.impl.disk.OverflowTestCase.RecordWriter;
 import org.junit.Test;
 
 import java.io.File;

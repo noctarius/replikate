@@ -16,7 +16,7 @@
  *  specific language governing permissions and limitations
  *  under the License.
  */
-package com.noctarius.replikate.io.disk;
+package com.noctarius.replikate.impl.disk;
 
 import com.noctarius.replikate.JournalBatch;
 import com.noctarius.replikate.JournalEntry;
@@ -28,7 +28,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static com.noctarius.replikate.io.disk.DiskJournalIOUtils.prepareJournalEntry;
+import static com.noctarius.replikate.impl.disk.DiskJournalIOUtils.prepareJournalEntry;
 
 class DiskJournalBatchProcess<V>
         implements JournalBatch<V> {

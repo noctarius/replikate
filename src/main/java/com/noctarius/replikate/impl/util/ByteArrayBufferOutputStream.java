@@ -16,21 +16,31 @@
  *  specific language governing permissions and limitations
  *  under the License.
  */
-package com.noctarius.replikate.io.amqp;
+package com.noctarius.replikate.impl.util;
 
-import com.noctarius.replikate.JournalConfiguration;
+import java.io.IOException;
+import java.io.OutputStream;
 
-public class AMQPJournalConfiguration<V>
-        extends JournalConfiguration<V> {
+public class ByteArrayBufferOutputStream
+        extends OutputStream {
 
-    private String amqpUrl;
+    private final byte[] wrapped;
 
-    public String getAmqpUrl() {
-        return amqpUrl;
+    private int pos = 0;
+
+    public ByteArrayBufferOutputStream(byte[] wrapped) {
+        this.wrapped = wrapped;
     }
 
-    public void setAmqpUrl(String amqpUrl) {
-        this.amqpUrl = amqpUrl;
+    @Override
+    public void write(int b)
+            throws IOException {
+
+        if (pos == wrapped.length) {
+            throw new ArrayIndexOutOfBoundsException("Position " + pos + " is outside of wrapped array");
+        }
+
+        wrapped[pos++] = (byte) b;
     }
 
 }

@@ -16,25 +16,33 @@
  *  specific language governing permissions and limitations
  *  under the License.
  */
-package com.noctarius.replikate.io.util;
+package com.noctarius.replikate.impl.disk;
 
-public class Tuple<L, R> {
+import com.noctarius.replikate.JournalConfiguration;
 
-    private final L left;
+import java.nio.file.Path;
 
-    private final R right;
+public class DiskJournalConfiguration<V>
+        extends JournalConfiguration<V> {
 
-    public Tuple(L left, R right) {
-        this.left = left;
-        this.right = right;
+    private Path journalPath;
+
+    private int maxLogFileSize;
+
+    public Path getJournalPath() {
+        return journalPath;
     }
 
-    public L getLeft() {
-        return left;
+    public void setJournalPath(Path journalPath) {
+        this.journalPath = journalPath;
     }
 
-    public R getRight() {
-        return right;
+    public int getMaxLogFileSize() {
+        return maxLogFileSize;
+    }
+
+    public void setMaxLogFileSize(int maxLogFileSize) {
+        this.maxLogFileSize = maxLogFileSize;
     }
 
 }

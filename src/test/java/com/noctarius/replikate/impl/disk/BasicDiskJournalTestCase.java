@@ -16,7 +16,7 @@
  *  specific language governing permissions and limitations
  *  under the License.
  */
-package com.noctarius.replikate.io.disk;
+package com.noctarius.replikate.impl.disk;
 
 import com.noctarius.replikate.Journal;
 import com.noctarius.replikate.JournalBatch;

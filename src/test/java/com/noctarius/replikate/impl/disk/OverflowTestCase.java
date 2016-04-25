@@ -16,7 +16,7 @@
  *  specific language governing permissions and limitations
  *  under the License.
  */
-package com.noctarius.replikate.io.disk;
+package com.noctarius.replikate.impl.disk;
 
 import com.noctarius.replikate.Journal;
 import com.noctarius.replikate.JournalBatch;
@@ -27,7 +27,7 @@ import com.noctarius.replikate.JournalRecord;
 import com.noctarius.replikate.JournalSystem;
 import com.noctarius.replikate.SimpleJournalEntry;
 import com.noctarius.replikate.exceptions.JournalException;
-import com.noctarius.replikate.io.disk.BasicDiskJournalTestCase.NamingStrategy;
+import com.noctarius.replikate.impl.disk.BasicDiskJournalTestCase.NamingStrategy;
 import com.noctarius.replikate.spi.JournalEntryReader;
 import com.noctarius.replikate.spi.JournalEntryWriter;
 import com.noctarius.replikate.spi.JournalRecordIdGenerator;

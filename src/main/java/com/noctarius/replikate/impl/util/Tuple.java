@@ -16,20 +16,25 @@
  *  specific language governing permissions and limitations
  *  under the License.
  */
-package com.noctarius.replikate.io.disk;
+package com.noctarius.replikate.impl.util;
 
-import com.noctarius.replikate.SimpleJournalEntry;
+public class Tuple<L, R> {
 
-class DiskJournalEntry<V>
-        extends SimpleJournalEntry<V> {
+    private final L left;
 
-    /**
-     * Remember to exchange array reference to get volatility of array reference (JMM)
-     */
-    volatile byte[] cachedData = null;
+    private final R right;
 
-    DiskJournalEntry(V value, byte type) {
-        super(value, type);
+    public Tuple(L left, R right) {
+        this.left = left;
+        this.right = right;
+    }
+
+    public L getLeft() {
+        return left;
+    }
+
+    public R getRight() {
+        return right;
     }
 
 }

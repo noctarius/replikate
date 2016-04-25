@@ -16,10 +16,10 @@
  *  specific language governing permissions and limitations
  *  under the License.
  */
-package com.noctarius.replikate.io.disk;
+package com.noctarius.replikate.impl.disk;
 
 import com.noctarius.replikate.JournalEntry;
-import com.noctarius.replikate.io.util.ByteArrayBufferOutputStream;
+import com.noctarius.replikate.impl.util.ByteArrayBufferOutputStream;
 import com.noctarius.replikate.spi.JournalEntryReader;
 import com.noctarius.replikate.spi.JournalEntryWriter;
 import org.slf4j.Logger;

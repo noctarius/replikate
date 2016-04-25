@@ -16,13 +16,13 @@
  *  specific language governing permissions and limitations
  *  under the License.
  */
-package com.noctarius.replikate.io.disk;
+package com.noctarius.replikate.impl.disk;
 
 import com.noctarius.replikate.JournalEntry;
 import com.noctarius.replikate.JournalListener;
 import com.noctarius.replikate.JournalRecord;
 import com.noctarius.replikate.exceptions.ReplayCancellationException;
-import com.noctarius.replikate.io.util.Tuple;
+import com.noctarius.replikate.impl.util.Tuple;
 import com.noctarius.replikate.spi.JournalEntryReader;
 import com.noctarius.replikate.spi.ReplayNotificationResult;
 import org.slf4j.Logger;
@@ -38,7 +38,7 @@ import java.util.List;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
-import static com.noctarius.replikate.io.disk.DiskJournalIOUtils.readHeader;
+import static com.noctarius.replikate.impl.disk.DiskJournalIOUtils.readHeader;
 
 class DiskJournalReplayer<V> {
 

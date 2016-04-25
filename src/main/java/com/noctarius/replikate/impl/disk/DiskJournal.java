@@ -16,7 +16,7 @@
  *  specific language governing permissions and limitations
  *  under the License.
  */
-package com.noctarius.replikate.io.disk;
+package com.noctarius.replikate.impl.disk;
 
 import com.noctarius.replikate.JournalBatch;
 import com.noctarius.replikate.JournalEntry;
@@ -25,7 +25,7 @@ import com.noctarius.replikate.JournalNamingStrategy;
 import com.noctarius.replikate.JournalRecord;
 import com.noctarius.replikate.exceptions.JournalException;
 import com.noctarius.replikate.exceptions.SynchronousJournalException;
-import com.noctarius.replikate.io.util.Tuple;
+import com.noctarius.replikate.impl.util.Tuple;
 import com.noctarius.replikate.spi.AbstractJournal;
 import com.noctarius.replikate.spi.JournalEntryReader;
 import com.noctarius.replikate.spi.JournalEntryWriter;
@@ -45,7 +45,7 @@ import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static com.noctarius.replikate.io.disk.DiskJournalIOUtils.prepareJournalEntry;
+import static com.noctarius.replikate.impl.disk.DiskJournalIOUtils.prepareJournalEntry;
 
 class DiskJournal<V>
         extends AbstractJournal<V> {

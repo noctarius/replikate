@@ -27,7 +27,7 @@ import com.noctarius.replikate.JournalNamingStrategy;
 import com.noctarius.replikate.JournalStrategy;
 import com.noctarius.replikate.JournalSystem;
 import com.noctarius.replikate.exceptions.JournalException;
-import com.noctarius.replikate.io.disk.DiskJournalFactory;
+import com.noctarius.replikate.impl.disk.DiskJournalFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
