@@ -18,7 +18,7 @@
  */
 package com.noctarius.replikate.impl.disk;
 
-import com.noctarius.replikate.JournalEntry;
+import com.noctarius.replikate.spi.JournalEntry;
 import com.noctarius.replikate.impl.util.ByteArrayBufferOutputStream;
 import com.noctarius.replikate.spi.JournalEntryReader;
 import com.noctarius.replikate.spi.JournalEntryWriter;
@@ -80,7 +80,7 @@ enum DiskJournalIOUtils {
         return new DiskJournalFileHeader(version, maxLogFileSize, logFileNumber, type, firstDataOffset);
     }
 
-    static <V> DiskJournalEntryFacade<V> prepareJournalEntry(JournalEntry<V> entry, JournalEntryWriter<V> writer)
+    static <V> DiskJournalEntry<V> prepareJournalEntry(V entry, byte type, JournalEntryWriter<V> writer)
             throws IOException {
 
         long nanoSeconds = 0;
@@ -88,12 +88,12 @@ enum DiskJournalIOUtils {
             nanoSeconds = System.nanoTime();
         }
 
-        DiskJournalEntryFacade<V> journalEntry = getDiskJournalFacade(entry);
+        DiskJournalEntry<V> journalEntry = buildDiskJournal(entry, type);
         if (journalEntry.cachedData == null) {
             try (ByteArrayOutputStream out = new ByteArrayOutputStream(100);
                  DataOutputStream stream = new DataOutputStream(out)) {
 
-                writer.writeJournalEntry(entry, stream);
+                writer.writeJournalEntry(journalEntry, stream);
                 journalEntry.cachedData = out.toByteArray();
             }
 
@@ -105,9 +105,8 @@ enum DiskJournalIOUtils {
         return journalEntry;
     }
 
-    private static <V> DiskJournalEntryFacade<V> getDiskJournalFacade(JournalEntry<V> entry) {
-        return (entry instanceof DiskJournalEntryFacade) //
-                ? (DiskJournalEntryFacade<V>) entry : new DiskJournalEntryFacade<>(entry);
+    private static <V> DiskJournalEntry<V> buildDiskJournal(V entry, byte type) {
+        return new DiskJournalEntry<>(entry, type);
     }
 
     static <V> void writeRecord(DiskJournalRecord<V> record, byte[] entryData, RandomAccessFile raf)
@@ -154,30 +153,6 @@ enum DiskJournalIOUtils {
         }
 
         LOGGER.trace("DiskJournalIOUtils::prepareBulkRecord took {}ns", (System.nanoTime() - nanoSeconds));
-    }
-
-    static <V> DiskJournalRecord<V> readRecord(DiskJournal<V> journal, JournalEntryReader<V> reader, RandomAccessFile raf)
-            throws IOException {
-
-        long pos = raf.getFilePointer();
-
-        try {
-            int startingLength = raf.readInt();
-            long recordId = raf.readLong();
-
-            int entryLength = startingLength - DiskJournal.JOURNAL_RECORD_HEADER_SIZE;
-            byte type = raf.readByte();
-
-            byte[] entryData = new byte[entryLength];
-            raf.readFully(entryData);
-
-            return new DiskJournalRecord<>(reader.readJournalEntry(recordId, type, entryData), recordId);
-
-        } catch (IOException e) {
-            // Will never throw IOException itself since pos > 0 < maxLength
-            raf.seek(pos);
-            throw e;
-        }
     }
 
 }

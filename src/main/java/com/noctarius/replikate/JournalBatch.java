@@ -19,10 +19,11 @@
 package com.noctarius.replikate;
 
 import com.noctarius.replikate.exceptions.JournalException;
+import com.noctarius.replikate.spi.JournalEntry;
 
 public interface JournalBatch<V> {
 
-    void appendEntry(JournalEntry<V> entry)
+    void appendEntry(V entry, byte type)
             throws JournalException;
 
     void commit()

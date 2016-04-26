@@ -18,6 +18,8 @@
  */
 package com.noctarius.replikate;
 
+import com.noctarius.replikate.spi.JournalEntry;
+
 public interface JournalRecord<V>
         extends Comparable<JournalRecord<V>> {
 

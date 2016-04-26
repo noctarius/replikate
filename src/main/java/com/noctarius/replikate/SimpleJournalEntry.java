@@ -18,6 +18,8 @@
  */
 package com.noctarius.replikate;
 
+import com.noctarius.replikate.spi.JournalEntry;
+
 import java.util.Arrays;
 
 public class SimpleJournalEntry<V>

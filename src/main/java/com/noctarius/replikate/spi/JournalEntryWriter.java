@@ -18,8 +18,6 @@
  */
 package com.noctarius.replikate.spi;
 
-import com.noctarius.replikate.JournalEntry;
-
 import java.io.DataOutput;
 import java.io.IOException;
 

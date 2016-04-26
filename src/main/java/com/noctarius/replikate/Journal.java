@@ -19,6 +19,7 @@
 package com.noctarius.replikate;
 
 import com.noctarius.replikate.exceptions.JournalException;
+import com.noctarius.replikate.spi.JournalEntry;
 import com.noctarius.replikate.spi.JournalEntryReader;
 import com.noctarius.replikate.spi.JournalEntryWriter;
 import com.noctarius.replikate.spi.JournalRecordIdGenerator;
@@ -31,10 +32,10 @@ public interface Journal<V> {
 
     String getName();
 
-    void appendEntry(JournalEntry<V> entry)
+    void appendEntry(V entry, byte type)
             throws JournalException;
 
-    void appendEntry(JournalEntry<V> entry, JournalListener<V> listener)
+    void appendEntry(V entry, byte type, JournalListener<V> listener)
             throws JournalException;
 
     JournalBatch<V> startBatchProcess();

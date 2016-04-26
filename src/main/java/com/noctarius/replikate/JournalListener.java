@@ -19,13 +19,14 @@
 package com.noctarius.replikate;
 
 import com.noctarius.replikate.exceptions.JournalException;
+import com.noctarius.replikate.spi.JournalEntry;
 import com.noctarius.replikate.spi.ReplayNotificationResult;
 
 public interface JournalListener<V> {
 
     void onCommit(JournalRecord<V> record);
 
-    void onFailure(JournalEntry<V> entry, JournalException cause);
+    void onFailure(JournalEntry<V> journalEntry, JournalException cause);
 
     void onFailure(JournalBatch<V> journalBatch, JournalException cause);
 

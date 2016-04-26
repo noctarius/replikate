@@ -21,7 +21,7 @@ package com.noctarius.replikate.impl.disk;
 import com.noctarius.replikate.Journal;
 import com.noctarius.replikate.JournalBatch;
 import com.noctarius.replikate.JournalConfiguration;
-import com.noctarius.replikate.JournalEntry;
+import com.noctarius.replikate.spi.JournalEntry;
 import com.noctarius.replikate.JournalListener;
 import com.noctarius.replikate.JournalNamingStrategy;
 import com.noctarius.replikate.JournalRecord;
@@ -94,10 +94,10 @@ public class BasicDiskJournalTestCase
         JournalEntry<TestRecord> record3 = buildTestRecord(4, "test3", (byte) 32);
         JournalEntry<TestRecord> record4 = buildTestRecord(8, "test4", (byte) 48);
 
-        journal.appendEntry(record1);
-        journal.appendEntry(record2);
-        journal.appendEntry(record3);
-        journal.appendEntry(record4);
+        journal.appendEntry(record1.getValue(), record1.getType());
+        journal.appendEntry(record2.getValue(), record2.getType());
+        journal.appendEntry(record3.getValue(), record3.getType());
+        journal.appendEntry(record4.getValue(), record4.getType());
 
         journal.close();
 
@@ -132,10 +132,10 @@ public class BasicDiskJournalTestCase
         JournalEntry<TestRecord> record3 = buildTestRecord(4, "test3", (byte) 32);
         JournalEntry<TestRecord> record4 = buildTestRecord(8, "test4", (byte) 48);
 
-        journal.appendEntry(record1);
-        journal.appendEntry(record2);
-        journal.appendEntry(record3);
-        journal.appendEntry(record4);
+        journal.appendEntry(record1.getValue(), record1.getType());
+        journal.appendEntry(record2.getValue(), record2.getType());
+        journal.appendEntry(record3.getValue(), record3.getType());
+        journal.appendEntry(record4.getValue(), record4.getType());
 
         journal.close();
 
@@ -185,10 +185,10 @@ public class BasicDiskJournalTestCase
         JournalEntry<TestRecord> record3 = buildTestRecord(4, "test3", (byte) 32);
         JournalEntry<TestRecord> record4 = buildTestRecord(8, "test4", (byte) 48);
 
-        journal.appendEntry(record1);
-        journal.appendEntry(record2);
-        journal.appendEntry(record3);
-        journal.appendEntry(record4);
+        journal.appendEntry(record1.getValue(), record1.getType());
+        journal.appendEntry(record2.getValue(), record2.getType());
+        journal.appendEntry(record3.getValue(), record3.getType());
+        journal.appendEntry(record4.getValue(), record4.getType());
 
         journal.close();
 
@@ -240,14 +240,14 @@ public class BasicDiskJournalTestCase
         JournalEntry<TestRecord> record3 = buildTestRecord(4, "test3", (byte) 32);
         JournalEntry<TestRecord> record4 = buildTestRecord(8, "test4", (byte) 48);
 
-        journal.appendEntry(record1);
-        journal.appendEntry(record2);
+        journal.appendEntry(record1.getValue(), record1.getType());
+        journal.appendEntry(record2.getValue(), record2.getType());
 
         // Force to create a hole in the journal file (in normal operation that should not happen)
         recordIdGenerator.recordId++;
 
-        journal.appendEntry(record3);
-        journal.appendEntry(record4);
+        journal.appendEntry(record3.getValue(), record3.getType());
+        journal.appendEntry(record4.getValue(), record4.getType());
 
         journal.close();
 
@@ -283,14 +283,14 @@ public class BasicDiskJournalTestCase
         JournalEntry<TestRecord> record3 = buildTestRecord(4, "test3", (byte) 32);
         JournalEntry<TestRecord> record4 = buildTestRecord(8, "test4", (byte) 48);
 
-        journal.appendEntry(record1);
-        journal.appendEntry(record2);
+        journal.appendEntry(record1.getValue(), record1.getType());
+        journal.appendEntry(record2.getValue(), record2.getType());
 
         // Force to create a hole in the journal file (in normal operation that should not happen)
         recordIdGenerator.recordId++;
 
-        journal.appendEntry(record3);
-        journal.appendEntry(record4);
+        journal.appendEntry(record3.getValue(), record3.getType());
+        journal.appendEntry(record4.getValue(), record4.getType());
 
         journal.close();
 

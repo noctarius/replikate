@@ -21,7 +21,6 @@ package com.noctarius.replikate.impl.disk;
 import com.noctarius.replikate.Journal;
 import com.noctarius.replikate.JournalBatch;
 import com.noctarius.replikate.JournalConfiguration;
-import com.noctarius.replikate.JournalEntry;
 import com.noctarius.replikate.JournalRecord;
 import com.noctarius.replikate.JournalSystem;
 import com.noctarius.replikate.SimpleJournalEntry;
@@ -31,6 +30,7 @@ import com.noctarius.replikate.impl.disk.OverflowTestCase.FlushListener;
 import com.noctarius.replikate.impl.disk.OverflowTestCase.RecordIdGenerator;
 import com.noctarius.replikate.impl.disk.OverflowTestCase.RecordReader;
 import com.noctarius.replikate.impl.disk.OverflowTestCase.RecordWriter;
+import com.noctarius.replikate.spi.JournalEntry;
 import org.junit.Test;
 
 import java.io.File;
@@ -57,9 +57,9 @@ public class BatchProcessTestCase
         JournalEntry<byte[]> record3 = buildTestRecord((byte) 3);
 
         JournalBatch<byte[]> batch = journal.startBatchProcess();
-        batch.appendEntry(record1);
-        batch.appendEntry(record2);
-        batch.appendEntry(record3);
+        batch.appendEntry(record1.getValue(), record1.getType());
+        batch.appendEntry(record2.getValue(), record2.getType());
+        batch.appendEntry(record3.getValue(), record3.getType());
         batch.commit();
 
         journal.close();
@@ -107,9 +107,9 @@ public class BatchProcessTestCase
         JournalEntry<byte[]> record3 = buildTestRecord((byte) 3);
 
         JournalBatch<byte[]> batch = journal.startBatchProcess();
-        batch.appendEntry(record1);
-        batch.appendEntry(record2);
-        batch.appendEntry(record3);
+        batch.appendEntry(record1.getValue(), record1.getType());
+        batch.appendEntry(record2.getValue(), record2.getType());
+        batch.appendEntry(record3.getValue(), record3.getType());
 
         batch.commit();
         latch.await();
@@ -134,9 +134,9 @@ public class BatchProcessTestCase
         JournalEntry<byte[]> record3 = buildTestRecord((byte) 3);
 
         JournalBatch<byte[]> batch = journal.startBatchProcess();
-        batch.appendEntry(record1);
-        batch.appendEntry(record2);
-        batch.appendEntry(record3);
+        batch.appendEntry(record1.getValue(), record1.getType());
+        batch.appendEntry(record2.getValue(), record2.getType());
+        batch.appendEntry(record3.getValue(), record3.getType());
 
         journal.close();
 

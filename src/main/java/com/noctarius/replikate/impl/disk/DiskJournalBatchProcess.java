@@ -19,7 +19,7 @@
 package com.noctarius.replikate.impl.disk;
 
 import com.noctarius.replikate.JournalBatch;
-import com.noctarius.replikate.JournalEntry;
+import com.noctarius.replikate.spi.JournalEntry;
 import com.noctarius.replikate.JournalListener;
 import com.noctarius.replikate.exceptions.JournalException;
 
@@ -33,7 +33,7 @@ import static com.noctarius.replikate.impl.disk.DiskJournalIOUtils.prepareJourna
 class DiskJournalBatchProcess<V>
         implements JournalBatch<V> {
 
-    private final List<DiskJournalEntryFacade<V>> entries = new LinkedList<>();
+    private final List<DiskJournalEntry<V>> entries = new LinkedList<>();
     private final AtomicBoolean committed = new AtomicBoolean(false);
 
     private final JournalListener<V> listener;
@@ -47,11 +47,11 @@ class DiskJournalBatchProcess<V>
     }
 
     @Override
-    public void appendEntry(JournalEntry<V> entry)
+    public void appendEntry(V entry, byte type)
             throws JournalException {
 
         try {
-            DiskJournalEntryFacade<V> batchEntry = prepareJournalEntry(entry, journal.getWriter());
+            DiskJournalEntry<V> batchEntry = prepareJournalEntry(entry, type, journal.getWriter());
             entries.add(batchEntry);
             dataSize += batchEntry.cachedData.length;
 

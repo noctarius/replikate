@@ -16,18 +16,12 @@
  *  specific language governing permissions and limitations
  *  under the License.
  */
-package com.noctarius.replikate.impl.disk;
+package com.noctarius.replikate.spi;
 
-import com.noctarius.replikate.JournalEntry;
+public interface JournalEntry<V> {
 
-class DiskJournalEntryFacade<V>
-        extends DiskJournalEntry<V> {
+    V getValue();
 
-    final JournalEntry<V> wrappedEntry;
-
-    DiskJournalEntryFacade(JournalEntry<V> wrappedEntry) {
-        super(wrappedEntry.getValue(), wrappedEntry.getType());
-        this.wrappedEntry = wrappedEntry;
-    }
+    byte getType();
 
 }

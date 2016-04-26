@@ -85,7 +85,7 @@ class DiskJournalFile<V>
         return fileName;
     }
 
-    Tuple<DiskJournalAppendResult, JournalRecord<V>> appendRecord(DiskJournalEntryFacade<V> entry)
+    Tuple<DiskJournalAppendResult, JournalRecord<V>> appendRecord(DiskJournalEntry<V> entry)
             throws IOException {
 
         long nanoSeconds = 0;
@@ -105,7 +105,7 @@ class DiskJournalFile<V>
             }
 
             long recordId = journal.getRecordIdGenerator().nextRecordId();
-            DiskJournalRecord<V> record = new DiskJournalRecord<V>(entry.wrappedEntry, recordId);
+            DiskJournalRecord<V> record = new DiskJournalRecord<V>(entry, recordId);
             writeRecord(record, entryData, raf);
 
             return new Tuple<>(DiskJournalAppendResult.APPEND_SUCCESSFUL, record);
@@ -116,7 +116,7 @@ class DiskJournalFile<V>
         }
     }
 
-    Tuple<DiskJournalAppendResult, List<JournalRecord<V>>> appendRecords(List<DiskJournalEntryFacade<V>> entries, int dataSize)
+    Tuple<DiskJournalAppendResult, List<JournalRecord<V>>> appendRecords(List<DiskJournalEntry<V>> entries, int dataSize)
             throws IOException {
 
         long nanoSeconds = System.nanoTime();
@@ -127,9 +127,9 @@ class DiskJournalFile<V>
             byte[] data = new byte[dataSize];
             List<JournalRecord<V>> records = new LinkedList<>();
             try (ByteArrayBufferOutputStream out = new ByteArrayBufferOutputStream(data)) {
-                for (DiskJournalEntryFacade<V> entry : entries) {
+                for (DiskJournalEntry<V> entry : entries) {
                     long recordId = journal.getRecordIdGenerator().nextRecordId();
-                    DiskJournalRecord<V> record = new DiskJournalRecord<V>(entry.wrappedEntry, recordId);
+                    DiskJournalRecord<V> record = new DiskJournalRecord<V>(entry, recordId);
                     prepareBulkRecord(record, entry.cachedData, out);
                     records.add(record);
                 }

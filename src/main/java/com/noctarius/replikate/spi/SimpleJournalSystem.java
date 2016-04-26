@@ -21,7 +21,6 @@ package com.noctarius.replikate.spi;
 import com.noctarius.replikate.Journal;
 import com.noctarius.replikate.JournalBatch;
 import com.noctarius.replikate.JournalConfiguration;
-import com.noctarius.replikate.JournalEntry;
 import com.noctarius.replikate.JournalListener;
 import com.noctarius.replikate.JournalNamingStrategy;
 import com.noctarius.replikate.JournalStrategy;
@@ -126,17 +125,17 @@ public class SimpleJournalSystem
         }
 
         @Override
-        public void appendEntry(JournalEntry<V> entry)
+        public void appendEntry(V entry, byte type)
                 throws JournalException {
 
-            journal.appendEntry(entry);
+            journal.appendEntry(entry, type);
         }
 
         @Override
-        public void appendEntry(JournalEntry<V> entry, JournalListener<V> listener)
+        public void appendEntry(V entry, byte type, JournalListener<V> listener)
                 throws JournalException {
 
-            journal.appendEntry(entry, listener);
+            journal.appendEntry(entry, type, listener);
         }
 
         @Override

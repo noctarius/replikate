@@ -21,13 +21,13 @@ package com.noctarius.replikate.impl.disk;
 import com.noctarius.replikate.Journal;
 import com.noctarius.replikate.JournalBatch;
 import com.noctarius.replikate.JournalConfiguration;
-import com.noctarius.replikate.JournalEntry;
 import com.noctarius.replikate.JournalListener;
 import com.noctarius.replikate.JournalRecord;
 import com.noctarius.replikate.JournalSystem;
 import com.noctarius.replikate.SimpleJournalEntry;
 import com.noctarius.replikate.exceptions.JournalException;
 import com.noctarius.replikate.impl.disk.BasicDiskJournalTestCase.NamingStrategy;
+import com.noctarius.replikate.spi.JournalEntry;
 import com.noctarius.replikate.spi.JournalEntryReader;
 import com.noctarius.replikate.spi.JournalEntryWriter;
 import com.noctarius.replikate.spi.JournalRecordIdGenerator;
@@ -64,11 +64,11 @@ public class OverflowTestCase
         JournalEntry<byte[]> record2 = buildTestRecord((byte) 2);
         JournalEntry<byte[]> record3 = buildTestRecord((byte) 3);
 
-        journal.appendEntry(record1);
-        journal.appendEntry(record2);
+        journal.appendEntry(record1.getValue(), record1.getType());
+        journal.appendEntry(record2.getValue(), record2.getType());
 
         // Here the journal should overflow
-        journal.appendEntry(record3);
+        journal.appendEntry(record3.getValue(), record3.getType());
 
         journal.close();
 
@@ -103,7 +103,7 @@ public class OverflowTestCase
         @SuppressWarnings("unchecked") JournalEntry<byte[]>[] records = new JournalEntry[50];
         for (int i = 0; i < records.length; i++) {
             records[i] = buildTestRecord((byte) i);
-            journal.appendEntry(records[i]);
+            journal.appendEntry(records[i].getValue(), records[i].getType());
         }
 
         journal.close();
@@ -139,11 +139,11 @@ public class OverflowTestCase
             records[i] = buildTestRecord(i == 2 ? 1024 : 400, (byte) i);
         }
 
-        journal.appendEntry(records[0]);
-        journal.appendEntry(records[1]);
-        journal.appendEntry(records[2]);
-        journal.appendEntry(records[3]);
-        journal.appendEntry(records[4]);
+        journal.appendEntry(records[0].getValue(), records[0].getType());
+        journal.appendEntry(records[1].getValue(), records[1].getType());
+        journal.appendEntry(records[2].getValue(), records[2].getType());
+        journal.appendEntry(records[3].getValue(), records[3].getType());
+        journal.appendEntry(records[4].getValue(), records[4].getType());
 
         journal.close();
 

@@ -18,7 +18,7 @@
  */
 package com.noctarius.replikate.impl.disk;
 
-import com.noctarius.replikate.JournalEntry;
+import com.noctarius.replikate.spi.JournalEntry;
 import com.noctarius.replikate.JournalRecord;
 
 class DiskJournalRecord<V>

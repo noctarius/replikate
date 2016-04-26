@@ -20,10 +20,10 @@ package com.noctarius.replikate.spi;
 
 import com.noctarius.replikate.Journal;
 import com.noctarius.replikate.JournalBatch;
-import com.noctarius.replikate.JournalEntry;
 import com.noctarius.replikate.JournalListener;
 import com.noctarius.replikate.JournalNamingStrategy;
 import com.noctarius.replikate.JournalRecord;
+import com.noctarius.replikate.SimpleJournalEntry;
 import com.noctarius.replikate.exceptions.JournalException;
 
 import java.io.IOException;
@@ -106,37 +106,16 @@ public abstract class AbstractJournal<V>
         this.logNumber.set(logNumber);
     }
 
-    protected void onCommit(final JournalListener<V> journalListener, final JournalRecord<V> record) {
+    protected void onCommit(JournalListener<V> journalListener, final JournalRecord<V> record) {
         listenerExecutorService.execute(() -> journalListener.onCommit(record));
     }
 
-    protected void onFailure(final JournalListener<V> journalListener, final JournalEntry<V> entry,
-                             final JournalException cause) {
-
-        listenerExecutorService.execute(() -> journalListener.onFailure(entry, cause));
+    protected void onFailure(JournalListener<V> journalListener, V entry, byte type, JournalException cause) {
+        listenerExecutorService.execute(() -> journalListener.onFailure(new SimpleJournalEntry<V>(entry, type), cause));
     }
 
-    protected void onFailure(final JournalListener<V> journalListener, final JournalBatch<V> journalBatch,
-                             final JournalException cause) {
-
+    protected void onFailure(JournalListener<V> journalListener, JournalBatch<V> journalBatch, JournalException cause) {
         listenerExecutorService.execute(() -> journalListener.onFailure(journalBatch, cause));
-    }
-
-    protected class SimpleAppendOperation
-            implements JournalOperation {
-
-        protected final JournalEntry<V> entry;
-
-        protected final JournalListener<V> listener;
-
-        public SimpleAppendOperation(JournalEntry<V> entry, JournalListener<V> listener) {
-            this.entry = entry;
-            this.listener = listener;
-        }
-
-        public void execute() {
-            appendEntry(entry, listener);
-        }
     }
 
 }

@@ -18,8 +18,6 @@
  */
 package com.noctarius.replikate.spi;
 
-import com.noctarius.replikate.JournalEntry;
-
 import java.io.IOException;
 
 public interface JournalEntryReader<V> {

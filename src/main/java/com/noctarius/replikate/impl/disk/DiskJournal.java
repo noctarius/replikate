@@ -19,7 +19,6 @@
 package com.noctarius.replikate.impl.disk;
 
 import com.noctarius.replikate.JournalBatch;
-import com.noctarius.replikate.JournalEntry;
 import com.noctarius.replikate.JournalListener;
 import com.noctarius.replikate.JournalNamingStrategy;
 import com.noctarius.replikate.JournalRecord;
@@ -29,7 +28,6 @@ import com.noctarius.replikate.impl.util.Tuple;
 import com.noctarius.replikate.spi.AbstractJournal;
 import com.noctarius.replikate.spi.JournalEntryReader;
 import com.noctarius.replikate.spi.JournalEntryWriter;
-import com.noctarius.replikate.spi.JournalOperation;
 import com.noctarius.replikate.spi.JournalRecordIdGenerator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -107,21 +105,21 @@ class DiskJournal<V>
     }
 
     @Override
-    public void appendEntry(JournalEntry<V> entry)
+    public void appendEntry(V entry, byte type)
             throws JournalException {
 
-        appendEntry(entry, listener);
+        appendEntry(entry, type, listener);
     }
 
     @Override
-    public void appendEntry(JournalEntry<V> entry, JournalListener<V> listener)
+    public void appendEntry(V entry, byte type, JournalListener<V> listener)
             throws JournalException {
 
         if (shutdown.get()) {
             return;
         }
 
-        appendEntry0(entry, listener);
+        flushEntry(entry, type, listener);
     }
 
     @Override
@@ -157,19 +155,17 @@ class DiskJournal<V>
         return journalPath;
     }
 
-    void commitBatchProcess(final JournalBatch<V> journalBatch, final List<DiskJournalEntryFacade<V>> entries,
-                            final int dataSize, JournalListener<V> listener)
+    void commitBatchProcess(final JournalBatch<V> journalBatch, final List<DiskJournalEntry<V>> entries, final int dataSize,
+                            JournalListener<V> listener)
             throws JournalException {
 
         if (shutdown.get()) {
             throw new JournalException("DiskJournal already closed");
         }
 
-        BatchCommitOperation operation = newBatchCommitSyncOperation(journalBatch, entries, dataSize, listener);
-
-        operation.execute();
-        if (operation.getCause() != null) {
-            throw operation.getCause();
+        JournalException exception = executeBatch(entries, journalBatch, dataSize, listener);
+        if (exception != null) {
+            throw exception;
         }
     }
 
@@ -180,14 +176,7 @@ class DiskJournal<V>
         }
     }
 
-    private BatchCommitOperation newBatchCommitSyncOperation(JournalBatch<V> journalBatch,
-                                                             List<DiskJournalEntryFacade<V>> entries, int dataSize,
-                                                             JournalListener<V> listener) {
-
-        return new BatchCommitOperation(entries, journalBatch, dataSize, listener);
-    }
-
-    private void appendEntry0(JournalEntry<V> entry, JournalListener<V> listener) {
+    private void flushEntry(V entry, byte type, JournalListener<V> listener) {
         try {
             synchronized (journalFiles) {
                 DiskJournalFile<V> journalFile = journalFiles.peek();
@@ -197,7 +186,7 @@ class DiskJournal<V>
                     journalFiles.push(journalFile);
                 }
 
-                DiskJournalEntryFacade<V> recordEntry = prepareJournalEntry(entry, getWriter());
+                DiskJournalEntry<V> recordEntry = prepareJournalEntry(entry, type, getWriter());
 
                 Tuple<DiskJournalAppendResult, JournalRecord<V>> result = journalFile.appendRecord(recordEntry);
                 if (result.getLeft() == DiskJournalAppendResult.APPEND_SUCCESSFUL) {
@@ -206,7 +195,7 @@ class DiskJournal<V>
                     }
 
                 } else if (result.getLeft() == DiskJournalAppendResult.JOURNAL_OVERFLOW) {
-                    overflowJournal(entry, listener, journalFile);
+                    overflowJournal(entry, type, listener, journalFile);
 
                 } else if (result.getLeft() == DiskJournalAppendResult.JOURNAL_FULL_OVERFLOW) {
                     overflowLargeJournal(listener, journalFile, recordEntry);
@@ -214,13 +203,13 @@ class DiskJournal<V>
             }
         } catch (IOException e) {
             if (listener != null) {
-                onFailure(listener, entry, new SynchronousJournalException("Failed to persist journal entry", e));
+                onFailure(listener, entry, type, new SynchronousJournalException("Failed to persist journal entry", e));
             }
         }
     }
 
     private void overflowLargeJournal(JournalListener<V> listener, DiskJournalFile<V> journalFile,
-                                      DiskJournalEntryFacade<V> recordEntry)
+                                      DiskJournalEntry<V> recordEntry)
             throws IOException {
 
         Tuple<DiskJournalAppendResult, JournalRecord<V>> result;
@@ -248,7 +237,7 @@ class DiskJournal<V>
         }
     }
 
-    private void overflowJournal(JournalEntry<V> entry, JournalListener<V> listener, DiskJournalFile<V> journalFile)
+    private void overflowJournal(V entry, byte type, JournalListener<V> listener, DiskJournalFile<V> journalFile)
             throws IOException {
 
         LOGGER.debug("Journal full, overflowing to next one...");
@@ -260,7 +249,7 @@ class DiskJournal<V>
         journalFiles.push(buildJournalFile());
 
         // ... finally retry to write to journal
-        appendEntry(entry, listener);
+        appendEntry(entry, type, listener);
     }
 
     private DiskJournalFile<V> buildJournalFile()
@@ -278,91 +267,68 @@ class DiskJournal<V>
         return new DiskJournalFile<>(this, journalFile, logNumber, maxLogFileSize, type);
     }
 
-    private class BatchCommitOperation
-            implements JournalOperation {
+    private JournalException executeBatch(List<DiskJournalEntry<V>> entries, JournalBatch<V> journalBatch, int dataSize,
+                                          JournalListener<V> listener) {
 
-        private final List<DiskJournalEntryFacade<V>> entries;
+        synchronized (journalFiles) {
+            // Storing current recordId for case of rollback
+            long markedRecordId = getRecordIdGenerator().lastGeneratedRecordId();
 
-        private final JournalBatch<V> journalBatch;
-
-        private final JournalListener<V> listener;
-
-        private final int dataSize;
-
-        private volatile JournalException journalException = null;
-
-        private BatchCommitOperation(List<DiskJournalEntryFacade<V>> entries, JournalBatch<V> journalBatch, int dataSize,
-                                     JournalListener<V> listener) {
-
-            this.entries = entries;
-            this.journalBatch = journalBatch;
-            this.listener = listener;
-            this.dataSize = dataSize;
-        }
-
-        public void execute() {
-            synchronized (journalFiles) {
-                // Storing current recordId for case of rollback
-                long markedRecordId = getRecordIdGenerator().lastGeneratedRecordId();
-
-                try {
-                    commit();
-                } catch (Exception e) {
-                    journalException = new JournalException("Failed to persist journal batch process", e);
-
-                    if (listener != null) {
-                        onFailure(listener, journalBatch, journalException);
-                    }
-
-                    // Rollback the journal file
-                    rollback();
-
-                    // Rollback the recordId
-                    getRecordIdGenerator().notifyHighestJournalRecordId(markedRecordId);
-                }
-            }
-        }
-
-        JournalException getCause() {
-            return journalException;
-        }
-
-        void rollback() {
-            DiskJournalFile<V> journalFile = journalFiles.pop();
             try {
-                if (journalFile.getHeader().getType() == JOURNAL_FILE_TYPE_BATCH) {
-                    journalFile.close();
-                    String fileName = journalFile.getFileName();
-                    Files.delete(journalPath.resolve(fileName));
+                commitBatch(dataSize, entries);
+
+            } catch (Exception e) {
+                JournalException exception = new JournalException("Failed to persist journal batch process", e);
+
+                if (listener != null) {
+                    onFailure(listener, journalBatch, exception);
                 }
-            } catch (IOException ioe) {
-                throw new JournalException("Could not rollback journal batch file", ioe);
+
+                // Rollback the journal file
+                rollbackBatch();
+
+                // Rollback the recordId
+                getRecordIdGenerator().notifyHighestJournalRecordId(markedRecordId);
+                return exception;
             }
         }
+        return null;
+    }
 
-        void commit()
-                throws IOException {
-
-            // Calculate the file size of the batch journal file ...
-            int calculatedDataSize = dataSize + (entries.size() * DiskJournal.JOURNAL_RECORD_HEADER_SIZE);
-            int calculatedLogFileSize = calculatedDataSize + DiskJournal.JOURNAL_FILE_HEADER_SIZE;
-
-            // ... and start new journal
-            DiskJournalFile<V> journalFile = buildJournalFile(calculatedLogFileSize, JOURNAL_FILE_TYPE_BATCH);
-            journalFiles.push(journalFile);
-
-            // Persist all entries to disk ...
-            Tuple<DiskJournalAppendResult, List<JournalRecord<V>>> result = journalFile
-                    .appendRecords(entries, calculatedDataSize);
-
-            if (result.getLeft() != DiskJournalAppendResult.APPEND_SUCCESSFUL) {
-                throw new SynchronousJournalException("Failed to persist journal entry");
+    void rollbackBatch() {
+        DiskJournalFile<V> journalFile = journalFiles.pop();
+        try {
+            if (journalFile.getHeader().getType() == JOURNAL_FILE_TYPE_BATCH) {
+                journalFile.close();
+                String fileName = journalFile.getFileName();
+                Files.delete(journalPath.resolve(fileName));
             }
+        } catch (IOException ioe) {
+            throw new JournalException("Could not rollback journal batch file", ioe);
+        }
+    }
 
-            // ... and if non of them failed just announce them as committed
-            for (JournalRecord<V> record : result.getRight()) {
-                onCommit(listener, record);
-            }
+    void commitBatch(int dataSize, List<DiskJournalEntry<V>> entries)
+            throws IOException {
+
+        // Calculate the file size of the batch journal file ...
+        int calculatedDataSize = dataSize + (entries.size() * DiskJournal.JOURNAL_RECORD_HEADER_SIZE);
+        int calculatedLogFileSize = calculatedDataSize + DiskJournal.JOURNAL_FILE_HEADER_SIZE;
+
+        // ... and start new journal
+        DiskJournalFile<V> journalFile = buildJournalFile(calculatedLogFileSize, JOURNAL_FILE_TYPE_BATCH);
+        journalFiles.push(journalFile);
+
+        // Persist all entries to disk ...
+        Tuple<DiskJournalAppendResult, List<JournalRecord<V>>> result = journalFile.appendRecords(entries, calculatedDataSize);
+
+        if (result.getLeft() != DiskJournalAppendResult.APPEND_SUCCESSFUL) {
+            throw new SynchronousJournalException("Failed to persist journal entry");
+        }
+
+        // ... and if non of them failed just announce them as committed
+        for (JournalRecord<V> record : result.getRight()) {
+            onCommit(listener, record);
         }
     }
 
